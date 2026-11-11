@@ -1,0 +1,7 @@
+{
+  "name": "corkoro",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Decoupled Obsidian publishing tools and a customizable Astro blog",
+  "packageManager": "pnpm@11.25.0"
+}

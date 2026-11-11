@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
+Thumbs.db
+
+# 本地凭据与环境覆盖；示例配置可提交。
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.local.json
+*.local.yaml
+*.local.yml
+
+# 私人输入、数据库导出与临时产物。
+.local/
+.tmp/
+backups/
+*.sqlite
+*.sqlite3
+*.db
+.obsidian/
