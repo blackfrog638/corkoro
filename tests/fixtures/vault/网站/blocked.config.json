@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "root": "..",
+    "format": "obsidian-markdown",
+    "assetRoots": []
+  },
+  "publication": {
+    "entries": [
+      {
+        "source": "文章/含未公开引用.md",
+        "id": "fixture-blocked",
+        "slug": "blocked-example",
+        "publish": true
+      }
+    ]
+  },
+  "site": {
+    "title": "我的博客",
+    "profile": null,
+    "pages": [],
+    "friends": []
+  },
+  "theme": {
+    "name": "default",
+    "settings": {
+      "colorMode": "system",
+      "accentColor": "#3b82f6"
+    }
+  },
+  "output": {
+    "directory": "../../../../.local/example-sites/blocked"
+  }
+}

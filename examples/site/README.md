@@ -1,32 +1,34 @@
-# 外部站点项目示例
+# Vault 单配置示例
 
-这里只解释组织方式，没有可运行配置或生成产物。第一阶段实现配置协议后再加入真实示例。
+这里是 [发布范围协议 v1](../../docs/publication.md) 的人工示例说明，尚无 CLI 实现或生成产物。所有完整配置实际放在 [人工 Vault 的网站目录](../../tests/fixtures/vault/网站)，用来验证配置在源库内的场景。
 
-用户实际使用时无需在 Corkoro 源码中创建文章目录：
+用户实际目录可以组织为：
 
 ```text
-E:/notes/my-vault/          原始笔记及附件
-E:/sites/my-blog/
-  corkoro.config.json      指向外部内容源
-  theme/                   用户的样式和页面定制
-  output/                  工具生成的内容包与静态网站
-E:/dev/corkoro/             工具开发仓库
+E:/notes/my-vault/
+  文章/                         原始文章
+  attachments/                  文章附件
+  网站/
+    corkoro.config.json         唯一配置入口
+    关于.md                     关于页正文
+    assets/avatar.svg           头像
+E:/generated/my-blog/           工具生成的内容包、Astro 项目和静态网站
+E:/dev/corkoro/                 工具开发仓库
 ```
 
-以下 JSON 仅为字段草案，尚未冻结或实现。所有路径字段相对配置文件目录；附件目录也遵循此规则，不相对内容根目录。
+配置内的 publication.entries 保存文章选择和稳定身份；site 保存关于页引用、个人资料、友链；theme 指向 Corkoro 自带的 default 主题及其设置。无需单独的 publication.json、theme 目录或用户维护的站点源码。关于页和头像仍为独立文件，不塞进 JSON。
 
-```json
-{
-  "schemaVersion": 1,
-  "source": {
-    "root": "../../notes/my-vault",
-    "format": "obsidian-markdown",
-    "assetRoots": ["../../notes/my-vault/attachments"]
-  },
-  "output": { "directory": "./output" }
-}
-```
+配置文件中的路径相对配置目录，文章 entry.source 相对 source.root；Markdown 正文中的相对引用以正文目录为准。输出必须在 Vault 与资源根目录外，不能与输入互为祖先。附件目录只表示允许查找的位置，只发布显式入口引用的支持资源。
 
-附件目录仅表示允许查找的位置，发布集合由公开文章引用计算。输出不是源笔记的一部分，不手工修补产物。源与输出不能相同或互为祖先。
+## 四份独立配置
 
-人工样例可放在工具仓库，真实私人笔记不放在示例中。后续测试还需把样例复制到仓库外的临时目录验证，不能只证明固定目录能运行。
+| 配置 | 场景 | 预期 |
+| --- | --- | --- |
+| [corkoro.config.json](../../tests/fixtures/vault/网站/corkoro.config.json) | init 的空配置形态 | 零文章、零页面、无资料友链、空附件授权，不能构建 |
+| [selected.config.json](../../tests/fixtures/vault/网站/selected.config.json) | 两篇无属性文章，以及关于页、资料、友链 | 两篇文章、一页、被引用图片及头像进入产物 |
+| [blocked.config.json](../../tests/fixtures/vault/网站/blocked.config.json) | 文章引用未公开笔记 | 阻断链接/嵌入，不扩大选择 |
+| [pages-only.config.json](../../tests/fixtures/vault/网站/pages-only.config.json) | 零文章，有关于页、资料和友链 | 可以生成站点，页面不进文章列表/RSS |
+
+每份都是完整输入，未来通过 --config 选择一份，不合并配置。输出指向仓库内被忽略的 .local/example-sites 下不同目录；目前这些产物不存在。带 publish true 属性的候选文章在所有配置中均未选择，不能自动发布。
+
+后续测试需复制人工 Vault 到独立临时目录，再调整输出到该 Vault 外，验证路径不依赖仓库位置。构建不改任何输入；content 操作只改目标配置内清单并保留其它区块；丢弃输出后应能重建。这里的文件全部是人工数据，不放真实私人笔记。

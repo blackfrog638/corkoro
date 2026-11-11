@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "root": "..",
+    "format": "obsidian-markdown",
+    "assetRoots": [
+      "../attachments",
+      "./assets"
+    ]
+  },
+  "publication": {
+    "entries": [
+      {
+        "source": "文章/起步.md",
+        "id": "fixture-first",
+        "slug": "first-post",
+        "publish": true
+      },
+      {
+        "source": "文章/相关阅读.md",
+        "id": "fixture-related",
+        "slug": "related",
+        "publish": true
+      }
+    ]
+  },
+  "site": {
+    "title": "示例作者的博客",
+    "profile": {
+      "name": "示例作者",
+      "bio": "这里是人工示例资料。",
+      "avatar": "./assets/avatar.svg",
+      "socials": [
+        {
+          "label": "个人主页",
+          "url": "https://example.org"
+        }
+      ]
+    },
+    "pages": [
+      {
+        "id": "page-about",
+        "source": "./关于.md",
+        "route": "/about/",
+        "publish": true
+      }
+    ],
+    "friends": [
+      {
+        "name": "示例友链",
+        "url": "https://example.org",
+        "description": "人工示例，不会在本次访问该地址。"
+      }
+    ]
+  },
+  "theme": {
+    "name": "default",
+    "settings": {
+      "colorMode": "system",
+      "accentColor": "#3b82f6"
+    }
+  },
+  "output": {
+    "directory": "../../../../.local/example-sites/selected"
+  }
+}

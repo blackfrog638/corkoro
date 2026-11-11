@@ -18,21 +18,26 @@ node -e "JSON.parse(require('node:fs').readFileSync('package.json','utf8')); con
 1. 阅读 `docs/roadmap.md`，确定本次实现范围。
 2. 在对应模块加入真实包清单，建立验证入口。
 3. 使用人工测试笔记，不需要真实 Vault 或生产凭据。
-4. 真实笔记和站点配置放在仓库外；开发临时内容可放在被忽略的 `.local/`。组织示例见 [外部站点项目](../examples/site/README.md)。
+4. 真实笔记和站点配置放在仓库外；开发临时内容可放在被忽略的 `.local/`。组织示例见 [Vault 单配置示例](../examples/site/README.md)。
 
-## 规划中的命令
+## 已约定但尚未实现的命令
 
-开发仓库将建立真实的 `check`、`test`、`build` 等 pnpm 脚本。面向用户的 `corkoro` CLI 是另一层入口，下面仅为计划中的接口示意，不是可执行安装指南：
+开发仓库将建立真实 pnpm 脚本。面向用户的 corkoro CLI 是另一层入口，权威用法见 [CLI 契约](cli.md)，选择规则见 [发布范围协议](publication.md)。下面不是可执行安装指南：
 
 ```powershell
-corkoro check --config "E:/sites/my-blog/corkoro.config.json" --json
-corkoro build --config "E:/sites/my-blog/corkoro.config.json" --out-dir "./output"
-corkoro deploy --config "E:/sites/my-blog/corkoro.config.json" --artifact "./output"
+corkoro inspect --source "E:/notes/my-vault" --format obsidian-markdown --json
+corkoro init --source "E:/notes/my-vault" --config "E:/notes/my-vault/网站/corkoro.config.json" --out-dir "E:/generated/my-blog" --format obsidian-markdown --json
+corkoro content add "技术/第一篇文章.md" --slug first-post --config "E:/notes/my-vault/网站/corkoro.config.json" --json
+corkoro content list --config "E:/notes/my-vault/网站/corkoro.config.json" --json
+corkoro check --config "E:/notes/my-vault/网站/corkoro.config.json" --json
+corkoro plan --config "E:/notes/my-vault/网站/corkoro.config.json" --json
 ```
 
-`--config` 本身相对调用者工作目录定位。配置内路径及 `--out-dir`、`--artifact` 等对应覆盖路径以配置文件目录为基准，显式参数优先于配置。插件传递参数数组，不拼接 shell 字符串。`check` 只读，`build` 不上传和发信，`deploy` 才产生远端操作。
+初始化默认空清单及空附件授权；使用者需设置允许的附件目录并显式选择文章。source、config 参数相对调用者目录；配置字段和 init 的 out-dir 相对配置目录；content add 的文章路径相对源根目录。源笔记属性只提供线索，不能自动加入选择。插件传递参数数组，不拼接 shell 字符串。
 
-后续增加发布状态查询与变更计划展示；管理 CLI 计划支持待审列表、批准、拒绝、导出。初期不执行外部生成的任意命令或保存的构建计划。
+init/content 只创建或修改指定配置，保留 site/theme，不改正文和资源。inspect/check/plan/build 对全部输入只读。个人资料、友链及默认主题设置内联于配置，关于页和头像通过路径引用；没有独立 publication.json 或需要手改的站点项目。
+
+plan 指明文章、页面、资料、友链与附件的包含理由，阻断未公开引用；JSON 只是一份报告。后续 build、preview、deploy、status 和评论管理的详细参数尚未冻结。构建不上传和发信，部署才产生远端操作。
 
 以上能力目前均未实现。新增命令后将本节改为真实用法，并说明退出码、输入输出和环境选择。
 

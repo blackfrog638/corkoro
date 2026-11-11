@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "root": "..",
+    "format": "obsidian-markdown",
+    "assetRoots": []
+  },
+  "publication": {
+    "entries": []
+  },
+  "site": {
+    "title": "我的博客",
+    "profile": null,
+    "pages": [],
+    "friends": []
+  },
+  "theme": {
+    "name": "default",
+    "settings": {
+      "colorMode": "system",
+      "accentColor": "#3b82f6"
+    }
+  },
+  "output": {
+    "directory": "../../../../.local/example-sites/empty"
+  }
+}
