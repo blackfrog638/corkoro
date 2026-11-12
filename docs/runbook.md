@@ -2,7 +2,7 @@
 
 ## 当前可用能力
 
-2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包写出、网站与插件仍未开发。
+2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；网站与插件仍未开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
@@ -42,6 +42,29 @@ pnpm --silent corkoro content remove article-id --config "E:/notes/my-vault/网�
 
 init 创建空配置和必要事务元数据，不创建输出站点。用户填写允许资源根目录、关于页/资料/友链。add/remove 只修改配置内清单，保留其它字段；remove 可停用缺失正文，重复调用不改写配置。扫描属性不是授权。
 
+## 公开内容包库入口
+
+先执行 `pnpm run build`。从仓库根可用以下 PowerShell 示例构建人工样例，输出到样例配置指定的 `.local/example-sites/selected/content.bundle.json`（Git 已忽略 .local）。此处直接调用库，`corkoro build` 仍未实现。
+
+```powershell
+@'
+import { buildContentBundle, readContentBundle } from './dist/packages/publisher/src/index.js';
+const result = await buildContentBundle('tests/fixtures/vault/网站/selected.config.json');
+console.log(JSON.stringify(result, null, 2));
+if (result.ok) {
+  const bundle = await readContentBundle(result.bundlePath);
+  console.log(JSON.stringify(bundle.manifest, null, 2));
+}
+process.exitCode = result.exitCode;
+'@ | pnpm exec node --input-type=module
+```
+
+接入外部 Vault 时仅替换配置参数（建议传绝对路径）；不要复制内容进源码。库读取配置内 output.directory，只包含启用入口和获准引用资源。包中含规范化正文树、公开资料及资源字节，尚无 HTML 网站。具体字段与错误见[内容包协议](content-bundle.md)。
+
+相同输入返回相同 buildId、effect=none；修改选择后重建会整体替换包，撤回文档和无引用附件随之消失；其它输出文件不受影响。完全空内容或错误引用保留旧包。已有 content.bundle.json 若不是合法内容包，返回 OUTPUT_NOT_OWNED；不会自动删除或修补。尚未创建有效包时，失败也可能留下输出目录和事务元数据。
+
+内容包写入锁忙为 OUTPUT_BUSY，冲突为 OUTPUT_CHANGED。effect=unknown、退出 5 或调用方未收到响应时，先用 readContentBundle 读取目标，核对 buildId/manifest，再用当前配置重试；不重放 .tmp，不把历史结果当作当前发布授权。输入正文和资源始终只读；源编辑发生在捕获之后不会改变本次转换，下一次构建会重新检查。
+
 ## Windows 写入与恢复
 
 本轮实际验证 Windows + 本地固定 NTFS 卷 + Windows PowerShell/.NET。辅助进程以 windowsHide、参数数组启动；结构化 stdin 传路径/内容信息，不拼 shell。稳定空锁文件由 FileShare.None 互斥持有；更新通过 File.Replace，首次创建用同卷 File.Move。其它平台、UNC 或不支持卷返回 TRANSACTION_UNSUPPORTED。PowerShell 被环境策略禁用时不绕过策略。
@@ -54,10 +77,12 @@ init 创建空配置和必要事务元数据，不创建输出站点。用户填
 
 运行时测试将人工 Vault 复制到独立临时目录，覆盖严格 JSON/版本结构、参数错误、扫描与只读性、中文路径、跨工作目录、空配置、站点资料、幂等稳定 ID、缺文件停用、保留资料/主题、输出隔离、硬链接/junction 越界、双进程竞争与持有者退出、并发 init、提交后响应丢失重试、版本冲突、取消及遗留临时文件。新增 planning.test.mjs 验证引用授权、资源来源合并、解析器语法边界、伪装图片、主动 SVG、缺失/歧义与路径错误，并检查只读命令前后的输入文件哈希。
 
+bundle.test.mjs 另验证公开正文树、内容摘要与引用闭合、零文章站点、确定性重建、部分撤回、只读输入、校验与转换共享捕获字节、输出锁竞争、失去响应后的重读/幂等重试、暂存后进程退出、提交前取消、硬链接拒绝、父目录持锁行为及输出 junction 被替换后仍绑定原目标。生成内容包不代表网站已通过渲染或 UI 验收。
+
 Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色结果当作写入认证。正文、资源的哈希验证与抽象模型检查分别报告。
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析和只读 plan 已落地；下一步定义公开内容包 manifest、转换和输出提交边界，再进入网站。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan 和公开内容包库已落地；下一步实现 Astro 默认主题、生成站点及完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。

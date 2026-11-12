@@ -181,11 +181,30 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
       );
   }
   let leftovers: boolean;
+  const directories = new Map<string, { dev: bigint; ino: bigint }>();
   try {
+    for (const directory of [parent, stateDir]) {
+      const st = await fs.lstat(directory, { bigint: true });
+      if (!st.isDirectory() || st.isSymbolicLink())
+        throw new Failure("UNSAFE_TRANSACTION_STATE", 4);
+      directories.set(directory, { dev: st.dev, ino: st.ino });
+    }
     leftovers = (await fs.readdir(stateDir)).some((s) => s.endsWith(".tmp"));
   } catch (e) {
     await close();
     throw e;
+  }
+  async function verifyDirectories() {
+    for (const [directory, expected] of directories) {
+      const st = await fs.lstat(directory, { bigint: true });
+      if (
+        !st.isDirectory() ||
+        st.isSymbolicLink() ||
+        st.dev !== expected.dev ||
+        st.ino !== expected.ino
+      )
+        throw new Failure("UNSAFE_TRANSACTION_STATE", 4);
+    }
   }
   let cleanupPending = false;
   return {
@@ -201,6 +220,7 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
         unknown = false;
       try {
         cancelled(signal);
+        await verifyDirectories();
         await safeFile(target, true);
         await verifyTargetIdentity();
         temp = path.join(stateDir, randomUUID() + ".tmp");
@@ -213,6 +233,7 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
           await f.close();
         }
         cancelled(signal);
+        await verifyDirectories();
         await safeFile(target, true);
         await verifyTargetIdentity();
         committing = true;
@@ -234,6 +255,7 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
       } finally {
         if (temp && identity && !unknown) {
           try {
+            await verifyDirectories();
             const st = await fs.lstat(temp, { bigint: true });
             if (
               st.dev === identity.dev &&

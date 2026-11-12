@@ -27,3 +27,32 @@ export function failure(error: unknown, missing = "MISSING_SOURCE"): Failure {
 export function cancelled(signal?: AbortSignal) {
   if (signal?.aborted) throw new Failure("CANCELLED", 130);
 }
+
+export const diagnosticExitCode = (ds: Diagnostic[]): Envelope["exitCode"] =>
+  ds.some((d) => d.code === "CANCELLED")
+    ? 130
+    : ds.some((d) => d.code === "INTERNAL_ERROR")
+      ? 1
+      : ds.some((d) => ["IO_ERROR", "INPUT_CHANGED"].includes(d.code))
+        ? 4
+        : ds.some((d) => d.severity === "error")
+          ? 3
+          : 0;
+const compareDiagnosticValue = (
+  a: string | number | null,
+  b: string | number | null,
+) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : a < b ? -1 : 1);
+export const compareDiagnostics = (a: Diagnostic, b: Diagnostic) =>
+  ({ error: 0, warning: 1, info: 2 })[a.severity] -
+    { error: 0, warning: 1, info: 2 }[b.severity] ||
+  compareDiagnosticValue(a.code, b.code) ||
+  compareDiagnosticValue(a.location?.path ?? null, b.location?.path ?? null) ||
+  compareDiagnosticValue(
+    a.location?.pointer ?? null,
+    b.location?.pointer ?? null,
+  ) ||
+  compareDiagnosticValue(a.location?.line ?? null, b.location?.line ?? null) ||
+  compareDiagnosticValue(
+    a.location?.column ?? null,
+    b.location?.column ?? null,
+  );

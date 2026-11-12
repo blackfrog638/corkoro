@@ -3,6 +3,18 @@ import { frontmatter } from "micromark-extension-frontmatter";
 import { frontmatterFromMarkdown } from "mdast-util-frontmatter";
 import type { Root } from "mdast";
 
+declare module "mdast" {
+  interface Toml extends Literal {
+    type: "toml";
+  }
+  interface FrontmatterContentMap {
+    toml: Toml;
+  }
+  interface RootContentMap {
+    toml: Toml;
+  }
+}
+
 export type Reference = {
   target: string;
   embed: boolean;

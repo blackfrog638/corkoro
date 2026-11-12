@@ -10,15 +10,22 @@ import {
   type Config,
   type Command,
   type Envelope,
-  type Diagnostic,
 } from "../../content-contract/src/index.js";
 import { loadConfig, validatePaths, regularSource, hash } from "./files.js";
 import { inspect } from "./inspect.js";
 import { analyze } from "./planning.js";
 import { openTransaction } from "./transaction.js";
-import { Failure, failure, diag, cancelled } from "./errors.js";
+import {
+  Failure,
+  failure,
+  diag,
+  cancelled,
+  diagnosticExitCode,
+  compareDiagnostics,
+} from "./errors.js";
 export { openTransaction } from "./transaction.js";
 export { Failure } from "./errors.js";
+export { buildContentBundle, readContentBundle } from "./bundle.js";
 export type Request = {
   command: Command;
   config?: string;
@@ -29,20 +36,6 @@ export type Request = {
   id?: string;
   target?: string;
 };
-const codes = (ds: Diagnostic[]): Envelope["exitCode"] =>
-  ds.some((d) => d.code === "CANCELLED")
-    ? 130
-    : ds.some((d) => d.code === "INTERNAL_ERROR")
-      ? 1
-      : ds.some((d) => ["IO_ERROR", "INPUT_CHANGED"].includes(d.code))
-        ? 4
-        : ds.some((d) => d.severity === "error")
-          ? 3
-          : 0;
-const compareDiagnosticValue = (
-  a: string | number | null,
-  b: string | number | null,
-) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : a < b ? -1 : 1);
 export async function execute(
   req: Request,
   signal?: AbortSignal,
@@ -66,7 +59,7 @@ export async function execute(
       const inspected = await inspect(path.resolve(req.source!), signal);
       result.data = inspected.data;
       result.diagnostics = inspected.diagnostics;
-      result.exitCode = codes(result.diagnostics);
+      result.exitCode = diagnosticExitCode(result.diagnostics);
     } else {
       let filename = path.resolve(req.config!);
       const write = ["init", "content add", "content remove"].includes(
@@ -124,7 +117,7 @@ export async function execute(
           result.diagnostics.push(...analysis.diagnostics);
           if (req.command === "plan")
             result.diagnostics.push(diag("BASELINE_NOT_SUPPORTED", "info"));
-          result.exitCode = codes(result.diagnostics);
+          result.exitCode = diagnosticExitCode(result.diagnostics);
         }
         if (req.command === "content add") {
           const parsed = entrySchema.safeParse({
@@ -266,27 +259,6 @@ export async function execute(
     }
   }
   result.ok = result.exitCode === 0;
-  result.diagnostics.sort(
-    (a, b) =>
-      ({ error: 0, warning: 1, info: 2 })[a.severity] -
-        { error: 0, warning: 1, info: 2 }[b.severity] ||
-      compareDiagnosticValue(a.code, b.code) ||
-      compareDiagnosticValue(
-        a.location?.path ?? null,
-        b.location?.path ?? null,
-      ) ||
-      compareDiagnosticValue(
-        a.location?.pointer ?? null,
-        b.location?.pointer ?? null,
-      ) ||
-      compareDiagnosticValue(
-        a.location?.line ?? null,
-        b.location?.line ?? null,
-      ) ||
-      compareDiagnosticValue(
-        a.location?.column ?? null,
-        b.location?.column ?? null,
-      ),
-  );
+  result.diagnostics.sort(compareDiagnostics);
   return envelopeSchema.parse(result);
 }
