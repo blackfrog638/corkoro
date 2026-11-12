@@ -2,61 +2,58 @@
 
 ## 当前可用能力
 
-当前只有目录骨架。根 `package.json` 不提供 `dev`、`build`、`test` 等脚本；模块实现后再添加真实命令。
+2026-11-12：可运行 inspect、init、content list/add/remove、基础 check。plan/build/preview/deploy/status/comments 尚未实现，返回不支持。网站与插件仍未开发。
 
-包管理器固定为 pnpm 11.25.0（初始化环境中可用的版本）。首次引入运行时依赖时校验兼容性，固定 Node 版本并提交锁文件。未添加业务依赖。
-
-可用的只读检查：
+开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
 ```powershell
-git status --short
-node -e "JSON.parse(require('node:fs').readFileSync('package.json','utf8')); console.log('package.json OK')"
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run typecheck
+pnpm test
+pnpm run verify:model
 ```
 
-## 独立状态模型检查
+build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。尚未接 CI。
 
-已存在可运行的抽象验证脚本，仅使用 Node 标准库，不调用 corkoro、不访问真实 Vault、不写磁盘或访问网络：
+## 本地 CLI
+
+从仓库根运行；脚本不需要全局安装。--silent 抑制 pnpm 包装层日志，CLI 自身 --json 只输出一个封装对象。插件/agent 可直接以 Node 可执行文件加绝对 dist/tools/cli/src/main.js 路径调用，避免依赖工作目录或拼接 shell。
 
 ```powershell
-node tools/verification/cli-state-machine.mjs
+pnpm --silent corkoro inspect --source "tests/fixtures/vault" --format obsidian-markdown --json
+pnpm --silent corkoro content list --config "tests/fixtures/vault/网站/selected.config.json" --json
+pnpm --silent corkoro check --config "tests/fixtures/vault/网站/selected.config.json" --json
 ```
 
-输出有限状态/转换数量、并发反例、结果协议分区及事务事件检查。非零退出表示模型检查失败；零退出不代表实际 CLI 正确。模型边界见 [状态机](state-machine.md)。包管理仍使用 pnpm；此脚本无需安装依赖，直接运行 Node。
+样例 check 的非空输入返回 buildable=null、unperformedChecks=[references]，只说明结构和路径通过；完全空返回 false。基础 check 不判断双链、嵌入、正文资源及完整 Obsidian 兼容性，不能据此发布。
 
-## 开发启动前
-
-1. 阅读 `docs/roadmap.md`，确定本次实现范围。
-2. 在对应模块加入真实包清单，建立验证入口。
-3. 使用人工测试笔记，不需要真实 Vault 或生产凭据。
-4. 真实笔记和站点配置放在仓库外；开发临时内容可放在被忽略的 `.local/`。组织示例见 [Vault 单配置示例](../examples/site/README.md)。
-
-## 已约定但尚未实现的命令
-
-开发仓库将建立真实 pnpm 脚本。面向用户的 corkoro CLI 是另一层入口，权威用法见 [CLI 契约](cli.md)，选择规则见 [发布范围协议](publication.md)。下面不是可执行安装指南：
+在用户选择的外部 Vault 创建配置（下列路径需自行替换，不在本轮访问）：
 
 ```powershell
-corkoro inspect --source "E:/notes/my-vault" --format obsidian-markdown --json
-corkoro init --source "E:/notes/my-vault" --config "E:/notes/my-vault/网站/corkoro.config.json" --out-dir "E:/generated/my-blog" --format obsidian-markdown --json
-corkoro content add "技术/第一篇文章.md" --slug first-post --config "E:/notes/my-vault/网站/corkoro.config.json" --json
-corkoro content list --config "E:/notes/my-vault/网站/corkoro.config.json" --json
-corkoro check --config "E:/notes/my-vault/网站/corkoro.config.json" --json
-corkoro plan --config "E:/notes/my-vault/网站/corkoro.config.json" --json
+pnpm --silent corkoro init --source "E:/notes/my-vault" --config "E:/notes/my-vault/网站/corkoro.config.json" --out-dir "E:/generated/my-blog" --format obsidian-markdown --json
+pnpm --silent corkoro content add "技术/第一篇文章.md" --slug first-post --config "E:/notes/my-vault/网站/corkoro.config.json" --json
+pnpm --silent corkoro content remove article-id --config "E:/notes/my-vault/网站/corkoro.config.json" --json
 ```
 
-初始化默认空清单及空附件授权；使用者需设置允许的附件目录并显式选择文章。source、config 参数相对调用者目录；配置字段和 init 的 out-dir 相对配置目录；content add 的文章路径相对源根目录。源笔记属性只提供线索，不能自动加入选择。插件传递参数数组，不拼接 shell 字符串。
+init 创建空配置和必要事务元数据，不创建输出站点。用户填写允许资源根目录、关于页/资料/友链。add/remove 只修改配置内清单，保留其它字段；remove 可停用缺失正文，重复调用不改写配置。扫描属性不是授权。
 
-init/content 只创建或修改指定配置，保留 site/theme，不改正文和资源；可能使用工具拥有的事务临时文件。执行配置写入时暂停其它编辑器/同步软件对同一配置的写入。正文缺失或坏链不阻止停用对应文章；配置结构错误需先修复。若写入后未收到结果，重新读取配置，不能直接假定未提交。锁忙立即返回 CONFIG_BUSY，不等待、不自动重试。退出 5 表示提交未知，130 只表示已知提交前取消。不要删除 .corkoro-state 锁载体来强行解锁；OS 锁空闲时可以正常重用载体。旧临时文件不自动重放或清除，详见 [恢复规则](config-transactions.md)。inspect/check/plan/build 对全部输入只读。个人资料、友链及默认主题设置内联于配置，关于页和头像通过路径引用；没有独立 publication.json 或需要手改的站点项目。
+## Windows 写入与恢复
 
-plan 指明文章、页面、资料、友链与附件的包含理由，阻断未公开引用；JSON 只是一份报告。后续 build、preview、deploy、status 和评论管理的详细参数尚未冻结。构建不上传和发信，部署才产生远端操作。
+本轮实际验证 Windows + 本地固定 NTFS 卷 + Windows PowerShell/.NET。辅助进程以 windowsHide、参数数组启动；结构化 stdin 传路径/内容信息，不拼 shell。稳定空锁文件由 FileShare.None 互斥持有；更新通过 File.Replace，首次创建用同卷 File.Move。其它平台、UNC 或不支持卷返回 TRANSACTION_UNSUPPORTED。PowerShell 被环境策略禁用时不绕过策略。
 
-以上能力目前均未实现。新增命令后将本节改为真实用法，并说明退出码、输入输出和环境选择。
+手工编辑器/同步软件不得与命令同时写同一配置。锁忙立即返回 CONFIG_BUSY，不自动重试；不要删除 .corkoro-state 锁载体。进程退出后 OS 释放锁，可重用遗留载体。事务目录被扫描和发布规则排除；旧临时文件不自动重放，给 CLEANUP_PENDING，需人工确认后清理。
 
-## 远端操作
+退出 5/effect=unknown 或无响应时，先 list/读取配置，再决定是否重试。130 仅表示已知提交前取消。已提交后取消不回滚。效果、错误和恢复详见 [结果协议](cli-protocol.md)与[事务规则](config-transactions.md)。尚未验证断电耐久性，也不保证恶意本地进程并发替换路径时安全。
 
-初始化没有配置 remote、GitHub Actions、Cloudflare 资源或 MCP 连接。首次部署需确定目标仓库、Pages 基路径、权限和环境。构建成功与部署成功分别核对。CI 只接收公开快照和可移植配置，不依赖本机 Vault 路径，不上传整个私人 Vault。
+## 实际验证范围
 
-评论管理不要求实现后台网页，但需要授权管理入口。生产操作显式指定环境；只展示本次操作需要的数据。密钥不写入命令示例或日志。
+11 项测试将人工 Vault 复制到独立临时目录，覆盖严格 JSON/版本结构、参数错误、扫描与只读性、中文路径、跨工作目录、空配置、站点资料、幂等稳定 ID、缺文件停用、保留资料/主题、输出隔离、硬链接/junction 越界、双进程竞争与持有者退出、并发 init、提交后响应丢失重试、版本冲突、取消及遗留临时文件。
 
-## 数据迁移、备份与恢复
+Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色结果当作写入认证。正文、资源的哈希验证与抽象模型检查分别报告。
 
-API 开发时将迁移放入 `apps/api/migrations/`，并添加执行说明。导出文件放在仓库外或被忽略的 `backups/`。在拥有真实数据库前不添加占位恢复命令；接入时必须验证一次导出和恢复。
+## 远端与后续阶段
+
+本轮没有创建 remote、GitHub Actions、Cloudflare 资源、MCP 连接或部署，也不发邮件。第二阶段先实现引用解析和只读 plan，再进入内容包、网站和部署。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+
+数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。

@@ -1,7 +1,7 @@
 # CLI
 
-预留发布与管理命令入口，当前无可执行命令。
+src/main.ts 已实现 inspect、init、content list/add/remove 和基础 check 的参数解析、结构化输出、退出码及取消入口。业务规则由 publisher/content-contract 维护。
 
-为终端、agent、CI 和桌面插件提供统一调用入口。通过 `--config` 读取 Vault 内的单一站点配置（含文章清单、资料、友链与默认主题设置），调用核心的规划和执行能力；`build` 生成产物，`deploy` 显式发布产物，不混合副作用。
+先在仓库根 pnpm run build，再 pnpm --silent corkoro --help。供 agent 调用时使用绝对 Node 与 dist/tools/cli/src/main.js 路径及参数数组。尚未全局打包/发布；plan 和后续命令返回 UNSUPPORTED_COMMAND。
 
-首个实现目标是陌生 Vault 接入：`inspect`、`init`、`content list/add/remove` 和分范围 `check`；随后补全 `plan` 依赖解释。参数、输出和退出码以 [CLI 契约](../../docs/cli.md) 为准。后续管理命令提供范围明确的查询、审核和导出能力。参见 [操作手册](../../docs/runbook.md)。
+用法及平台限制见 [runbook](../../docs/runbook.md)，协议见 [CLI 契约](../../docs/cli.md)。

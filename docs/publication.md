@@ -1,6 +1,6 @@
 # 发布范围协议 v1
 
-状态：首版实现契约，尚无运行时实现。CLI 用法见 [命令契约](cli.md)，执行顺序见 [开发计划](roadmap.md)。本协议落实 [单配置决策](decisions/0004-vault-config-generated-site.md)。v1 尚未实现和发布，本次直接更新设计，无已发布数据迁移。
+状态：首版配置结构校验、显式选择和基础路径检查已实现；内容引用解析与构建尚未实现。CLI 用法见 [命令契约](cli.md)，执行顺序见 [开发计划](roadmap.md)。本协议落实 [单配置决策](decisions/0004-vault-config-generated-site.md)。v1 尚未公开发布；当前开发版采用本协议，无已发布数据迁移。
 
 ## 授权来源
 
@@ -14,7 +14,7 @@ Vault 内单个配置文件的 publication.entries 是当前站点唯一的文�
 
 `corkoro.config.json` 保存配置、publication.entries、个人资料、友链和主题设置。关于页 Markdown、头像等仍为独立文件，由这一个配置引用。输出构建 manifest 是生成记录，不是另一份用户维护的输入清单。
 
-配置推荐放在 Vault 的 `网站/` 目录。完整示例（字段尚无运行时实现）：
+配置推荐放在 Vault 的 `网站/` 目录。完整示例（字段已有运行时校验，网站尚未实现）：
 
 ```json
 {

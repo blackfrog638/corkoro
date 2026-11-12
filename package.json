@@ -3,5 +3,26 @@
   "version": "0.0.0",
   "private": true,
   "description": "Decoupled Obsidian publishing tools and a customizable Astro blog",
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@11.25.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24.22.1 <27"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node tools/build-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run build && node --test tests/runtime/*.test.mjs",
+    "corkoro": "node dist/tools/cli/src/main.js",
+    "verify:model": "node tools/verification/cli-state-machine.mjs"
+  },
+  "dependencies": {
+    "jsonc-parser": "3.3.1",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "prettier": "3.6.2",
+    "typescript": "7.0.2"
+  }
 }

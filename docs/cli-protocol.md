@@ -1,6 +1,6 @@
 # 七个本地命令的结果与分支协议
 
-日期：2026-11-12。状态：实现契约，尚无 CLI。细化 [CLI 用法](cli.md)，与 [事务协议](config-transactions.md) 一起定义首版的有限范围。build/preview/deploy/status/comments 不在本协议的完备性主张中。
+日期：2026-11-12。状态：第一阶段 CLI 已实现（plan 除外），本文同时规定后续完整语义。细化 [CLI 用法](cli.md)，与 [事务协议](config-transactions.md) 一起定义首版的有限范围。build/preview/deploy/status/comments 不在本协议的完备性主张中。
 
 ## 参数和共同执行顺序
 
@@ -12,7 +12,7 @@
 
 ## 唯一结果封装
 
-下面是协议类型记法，不是已实现的 TypeScript 模块。所有字段必填，除非带 ?；null 与空数组不能互换。对象不允许未列出的字段。计数和资源根下标均为非负安全整数，行列为正安全整数。可见错误必须使用同一封装，强杀/断电/输出管道断开不保证产生完整结果。
+下面是协议类型记法；已实现字段的类型和运行时校验位于 packages/content-contract，PlanData 暂为设计。所有字段必填，除非带 ?；null 与空数组不能互换。对象不允许未列出的字段。计数和资源根下标均为非负安全整数，行列为正安全整数。可见错误必须使用同一封装，强杀/断电/输出管道断开不保证产生完整结果。
 
 ```typescript
 type Command = 'inspect' | 'init' | 'content list' | 'content add'

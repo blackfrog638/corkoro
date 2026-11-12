@@ -2,7 +2,7 @@
 
 ## 先读取
 
-先读 `README.md`，再按任务读取 `docs/architecture.md`、`docs/roadmap.md` 和 `docs/runbook.md`。CLI 和内容选择任务还需读取 `docs/cli.md`、`docs/publication.md`。命令校验、并发及提交边界还需读取 `docs/state-machine.md`、`docs/cli-protocol.md` 和 `docs/config-transactions.md`。重要取舍以 `docs/decisions/` 为准，新的细化决策优先于旧约定。当前仓库仅有骨架，不要把计划中的能力描述为已经实现。
+先读 `README.md`，再按任务读取 `docs/architecture.md`、`docs/roadmap.md` 和 `docs/runbook.md`。CLI 和内容选择任务还需读取 `docs/cli.md`、`docs/publication.md`。命令校验、并发及提交边界还需读取 `docs/state-machine.md`、`docs/cli-protocol.md` 和 `docs/config-transactions.md`。重要取舍以 `docs/decisions/` 为准，新的细化决策优先于旧约定。当前已实现第一阶段本地 CLI，其余模块仍有骨架；以 runbook 的实测能力为准，不要把计划中的能力描述为已经实现。
 
 ## 修改位置与边界
 
