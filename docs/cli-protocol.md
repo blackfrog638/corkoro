@@ -1,18 +1,18 @@
 # 七个本地命令的结果与分支协议
 
-日期：2026-11-12。状态：第一阶段 CLI 已实现（plan 除外），本文同时规定后续完整语义。细化 [CLI 用法](cli.md)，与 [事务协议](config-transactions.md) 一起定义首版的有限范围。build/preview/deploy/status/comments 不在本协议的完备性主张中。
+日期：2026-11-12。状态：七个本地命令均已实现，引用能力边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。细化 [CLI 用法](cli.md)，与 [事务协议](config-transactions.md) 一起定义首版的有限范围。build/preview/deploy/status/comments 不在本协议的完备性主张中。
 
 ## 参数和共同执行顺序
 
 命令为 inspect、init、content list、content add、content remove、check、plan；参数见 cli.md。首版拒绝未知参数、重复选项、额外位置参数、空参数、非法 format、非布尔旗标值。不自动发现配置，不隐式覆盖或重试。--json 是无值旗标。--help/--version 是元信息请求，不访问输入；与 --json 或业务参数混用返回 INVALID_ARGUMENT；--version 只允许根级使用。
 
-统一阶段：解析参数 → 检查命令是否已实现 → 安全定位输入 → 写命令获取锁 → 读配置/扫描 → 结构与局部校验 → 生成结果或提交 → 输出。前置阶段失败不继续后续阶段，不为了搜集更多错误去读无关文件。plan 尚未实现时在读取配置前返回 UNSUPPORTED_COMMAND。
+统一阶段：解析参数 → 检查命令是否已实现 → 安全定位输入 → 写命令获取锁 → 读配置/扫描 → 结构与局部校验 → 生成结果或提交 → 输出。前置阶段失败不继续后续阶段，不为了搜集更多错误去读无关文件。当前 plan 已接入引用分析；未实现的后续命令在读取配置前返回 UNSUPPORTED_COMMAND。
 
 只读命令不创建锁目录或事务文件。读到完整旧版或新版配置均合法；读取期间检测到变化返回 INPUT_CHANGED，不重试、不声称取得全库原子快照。配置使用严格 UTF-8 JSON（可接受文件开头一个 BOM），拒绝重复键、未知键和不支持版本。结构校验不依赖正文存在；文件身份别名冲突属于路径校验，不妨碍 list/remove。
 
 ## 唯一结果封装
 
-下面是协议类型记法；已实现字段的类型和运行时校验位于 packages/content-contract，PlanData 暂为设计。所有字段必填，除非带 ?；null 与空数组不能互换。对象不允许未列出的字段。计数和资源根下标均为非负安全整数，行列为正安全整数。可见错误必须使用同一封装，强杀/断电/输出管道断开不保证产生完整结果。
+下面是协议类型记法；已实现字段的类型和运行时校验位于 packages/content-contract，包括 PlanData。所有字段必填，除非带 ?；null 与空数组不能互换。对象不允许未列出的字段。计数和资源根下标均为非负安全整数，行列为正安全整数。可见错误必须使用同一封装，强杀/断电/输出管道断开不保证产生完整结果。
 
 ```typescript
 type Command = 'inspect' | 'init' | 'content list' | 'content add'
@@ -85,7 +85,7 @@ type PlanData = {
 - init：路径输出为本机绝对路径，创建配置及必要父目录，不创建输出目录。失败不回滚删除可能被其他进程使用的父目录，空目录残留不算配置提交。
 - list：返回完整配置内文章条目，包括停用项；不扫描正文。读到结构错误返回 data=null。
 - add/remove：返回最终目标条目；changed=false 时不得重写或格式化配置，configVersion 保持相同。changed=true 只允许目标条目变化，站点设置保持语义值；JSON 排版无需字节保持。重复 add 必须匹配原 source/slug/显式 ID，冲突不静默更新。
-- check：W 有效后才返回 CheckData，否则 data=null。六个检查类别恰好分别出现在三个检查数组中的一个；passed/failed 表示该类别已做完且通过/失败，未做完归 unperformed。complete 当且仅当 unperformedChecks 为空。已知内容错误或完全空使 buildable=false；有内容且无已知错误但未检查完为 null；完整通过才为 true。基础 check 尚不检查 references，因此非空输入只能得到 null 或 false。
+- check：W 有效后才返回 CheckData，否则 data=null。六个检查类别恰好分别出现在三个检查数组中的一个；passed/failed 表示该类别已做完且通过/失败，未做完归 unperformed。complete 当且仅当 unperformedChecks 为空。已知内容错误或完全空使 buildable=false；有内容且无已知错误但未检查完为 null；完整通过才为 true。当前 check 已检查 references；路径前置失败或引用分析中止时仍保留明确的 unperformed 分区。
 - plan：只有完整规划能力已实现才接受请求。W 有效后可以返回部分报告；complete 表示约定的分析范围已走完，不表示通过。完整发现坏链时 complete=true、buildable=false、非零退出；IO/输入变动/取消中止时 complete=false、buildable=false。文章/页面数组表示显式入口，含被坏链阻断的入口，不是可直接部署的内容包。资产只列成功验证的资源。首版 changes 固定 null 并附 BASELINE_NOT_SUPPORTED info，旧构建差异留待定义输出 manifest 后实现，不猜测变化。page.source 转为源根相对路径；资产根下标对应 source.assetRoots。profile/friends 只包含明确可公开字段，不透传整个配置；reason.field 为配置 JSON Pointer，文章/页面资源的 fromId 指向入口 ID。所有数组不含未公开正文。
 
 取消发生在未形成上述部分报告之前时 data=null；有结构有效的部分 CheckData 时 complete=false，buildable=false，剩余检查归 unperformed。无法读取完整配置时不伪造计数为零。

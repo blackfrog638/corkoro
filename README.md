@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-2026-11-12：第一阶段已实现严格配置校验、inspect、init、content list/add/remove 和基础 check。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook。plan、引用解析、网站构建、部署、评论接口和 Obsidian 插件尚未实现；没有配置云端资源。有限状态模型与真实 CLI 测试分别维护。
+2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。内容包写出、网站构建、部署、评论接口和 Obsidian 插件尚未实现；没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
 
 ## 从这里开始
 
@@ -33,7 +33,7 @@
 | `tests/fixtures/vault` | 人工编写的示例笔记，不放真实私人笔记 |
 | `examples/site` | Vault 配置与四种人工场景的使用说明 |
 
-目前只有内容契约、发布核心及 CLI 的第一阶段代码；apps 下仍为预留模块。当前采用根包统一编译源模块和管理依赖，尚不独立发布子包。Node 开发版本固定为 .node-version，依赖与 pnpm 锁文件已加入。
+目前已有内容契约、发布核心及 CLI 的选择与引用规划代码；apps 下仍为预留模块。当前采用根包统一编译源模块和管理依赖，尚不独立发布子包。Node 开发版本固定为 .node-version，依赖与 pnpm 锁文件已加入。
 
 ## 输入与输出
 

@@ -1,6 +1,6 @@
 # CLI 契约 v1
 
-状态：第一阶段已实现 inspect、init、content list/add/remove、基础 check；Windows 本地 NTFS 可写，其它平台写入拒绝。plan 及后续命令明确返回不支持。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
+状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 及后续命令明确返回不支持。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
 
 ## 命令结构
 
@@ -75,13 +75,12 @@ corkoro content <action> [arguments] [options]
       "selection",
       "site",
       "theme",
-      "paths"
-    ],
-    "failedChecks": [],
-    "unperformedChecks": [
+      "paths",
       "references"
     ],
-    "complete": false,
+    "failedChecks": [],
+    "unperformedChecks": [],
+    "complete": true,
     "buildable": false
   },
   "diagnostics": [
@@ -113,7 +112,7 @@ corkoro content <action> [arguments] [options]
 
 发生错误时 `ok: false` 且返回相应退出码。前置阶段失败不继续后续阶段；同阶段多个错误依 internal、protocol、IO/事务、内容排序。取消和提交未知按事务阶段处理，不能用一般错误优先级覆盖提交事实。完整扫描遇到不可读文件不能返回 0，部分 inventory 可保留在 data 中。
 
-## 陌生 Vault 的目标操作顺序（plan 尚未实现）
+## 陌生 Vault 的本地规划操作顺序
 
 ```powershell
 corkoro inspect --source "E:/notes/陌生 Vault" --format obsidian-markdown --json

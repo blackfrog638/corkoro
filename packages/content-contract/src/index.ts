@@ -193,6 +193,73 @@ export const checkSchema = z
     )
       c.addIssue({ code: "custom", message: "Invalid buildable claim" });
   });
+export type CheckData = z.infer<typeof checkSchema>;
+export const reasonSchema = z.strictObject({
+  code: z.enum([
+    "SELECTED_ARTICLE",
+    "SELECTED_PAGE",
+    "EXPLICIT_PROFILE",
+    "EXPLICIT_FRIEND",
+    "REFERENCED_ASSET",
+  ]),
+  fromId: idSchema.nullable(),
+  field: z.string().nullable(),
+});
+export type Reason = z.infer<typeof reasonSchema>;
+export const planSchema = z
+  .strictObject({
+    articles: z.array(
+      z.strictObject({
+        id: idSchema,
+        source: z.string(),
+        slug: slugSchema,
+        reason: reasonSchema,
+      }),
+    ),
+    pages: z.array(
+      z.strictObject({
+        id: idSchema,
+        source: z.string(),
+        route: pageSchema.shape.route,
+        reason: reasonSchema,
+      }),
+    ),
+    profile: z
+      .strictObject({ value: profileSchema, reason: reasonSchema })
+      .nullable(),
+    friends: z.array(
+      z.strictObject({ value: friendSchema, reason: reasonSchema }),
+    ),
+    assets: z.array(
+      z.strictObject({
+        assetRoot: z.number().int().nonnegative(),
+        path: z.string(),
+        reasons: z.array(reasonSchema).min(1),
+      }),
+    ),
+    blockedReferences: z.array(
+      z.strictObject({
+        fromId: idSchema,
+        target: z.string(),
+        code: z.string(),
+        line: z.number().int().positive().nullable(),
+        column: z.number().int().positive().nullable(),
+      }),
+    ),
+    changes: z.null(),
+    complete: z.boolean(),
+    buildable: z.boolean().nullable(),
+  })
+  .superRefine((v, ctx) => {
+    if (
+      v.buildable === true &&
+      (!v.complete ||
+        v.blockedReferences.length ||
+        !(v.articles.length || v.pages.length || v.profile || v.friends.length))
+    )
+      ctx.addIssue({ code: "custom", message: "Invalid buildable plan" });
+  });
+export type PlanData = z.infer<typeof planSchema>;
 export const inspectSchema = z.strictObject({
   inventory: z.array(
     z.strictObject({
@@ -254,20 +321,30 @@ export const envelopeSchema = z
         c.addIssue({ code: "custom", message: "Missing successful result" });
       return;
     }
-    const schema =
-      v.command === "inspect"
-        ? inspectSchema
-        : v.command === "check"
-          ? checkSchema
-          : v.command === "content list"
-            ? z.strictObject({ entries: z.array(entrySchema) })
-            : v.command === "init"
-              ? z.strictObject({
-                  configPath: z.string(),
-                  outputDirectory: z.string(),
-                  changed: z.literal(true),
-                })
-              : z.strictObject({ entry: entrySchema, changed: z.boolean() });
+    let schema: z.ZodType;
+    switch (v.command) {
+      case "inspect":
+        schema = inspectSchema;
+        break;
+      case "check":
+        schema = checkSchema;
+        break;
+      case "plan":
+        schema = planSchema;
+        break;
+      case "content list":
+        schema = z.strictObject({ entries: z.array(entrySchema) });
+        break;
+      case "init":
+        schema = z.strictObject({
+          configPath: z.string(),
+          outputDirectory: z.string(),
+          changed: z.literal(true),
+        });
+        break;
+      default:
+        schema = z.strictObject({ entry: entrySchema, changed: z.boolean() });
+    }
     if (!schema.safeParse(v.data).success)
       c.addIssue({ code: "custom", message: "Invalid command data" });
   });

@@ -1,6 +1,6 @@
 # 架构
 
-本文是目标架构；本地 CLI、配置校验和 Windows 配置写入已有第一阶段运行时代码，其余构建与网站链路仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
+本文是目标架构；本地 CLI、配置校验、Windows 配置写入及只读引用规划已有运行时代码，其余内容包写出与网站链路仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
 
 ## 三类位置
 

@@ -103,7 +103,7 @@ try {
   const request = parse();
   if (request === "help")
     process.stdout.write(
-      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nPlanned: plan, build, preview, deploy, status, comments\n",
+      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nPlanned: build, preview, deploy, status, comments\n",
     );
   else if (request === "version") process.stdout.write("0.0.0\n");
   else {

@@ -14,6 +14,7 @@ import {
 } from "../../content-contract/src/index.js";
 import { loadConfig, validatePaths, regularSource, hash } from "./files.js";
 import { inspect } from "./inspect.js";
+import { analyze } from "./planning.js";
 import { openTransaction } from "./transaction.js";
 import { Failure, failure, diag, cancelled } from "./errors.js";
 export { openTransaction } from "./transaction.js";
@@ -38,6 +39,10 @@ const codes = (ds: Diagnostic[]): Envelope["exitCode"] =>
         : ds.some((d) => d.severity === "error")
           ? 3
           : 0;
+const compareDiagnosticValue = (
+  a: string | number | null,
+  b: string | number | null,
+) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : a < b ? -1 : 1);
 export async function execute(
   req: Request,
   signal?: AbortSignal,
@@ -57,12 +62,6 @@ export async function execute(
     if (!requestSchema.safeParse(req).success)
       throw new Failure("INVALID_ARGUMENT", 2);
     cancelled(signal);
-    if (req.command === "plan")
-      throw new Failure(
-        "UNSUPPORTED_COMMAND",
-        2,
-        "Reference planning is not implemented",
-      );
     if (req.command === "inspect") {
       const inspected = await inspect(path.resolve(req.source!), signal);
       result.data = inspected.data;
@@ -118,38 +117,14 @@ export async function execute(
         result.configVersion = loaded.version;
         if (req.command === "content list")
           result.data = { entries: c.publication.entries };
-        if (req.command === "check") {
-          const d = {
-            selectedCount: c.publication.entries.filter((e) => e.publish)
-              .length,
-            pageCount: c.site.pages.filter((e) => e.publish).length,
-            hasProfile: c.site.profile !== null,
-            friendCount: c.site.friends.length,
-            passedChecks: ["config", "selection", "site", "theme"] as string[],
-            failedChecks: [] as string[],
-            unperformedChecks: ["references"],
-            complete: false,
-            buildable: null as boolean | null,
-          };
-          try {
-            await validatePaths(c, filename);
-            cancelled(signal);
-            d.passedChecks.push("paths");
-          } catch (e) {
-            const err = failure(e);
-            if (err.exitCode === 130) throw err;
-            d.failedChecks.push("paths");
-            result.diagnostics.push(diag(err.code, "error", err.message));
-            result.exitCode = err.exitCode;
-            d.buildable = false;
-          }
-          if (
-            !(d.selectedCount || d.pageCount || d.hasProfile || d.friendCount)
-          ) {
-            d.buildable = false;
-            result.diagnostics.push(diag("EMPTY_SELECTION", "warning"));
-          }
-          result.data = d;
+        if (req.command === "check" || req.command === "plan") {
+          const analysis = await analyze(c, filename, signal);
+          result.data =
+            req.command === "check" ? analysis.check : analysis.plan;
+          result.diagnostics.push(...analysis.diagnostics);
+          if (req.command === "plan")
+            result.diagnostics.push(diag("BASELINE_NOT_SUPPORTED", "info"));
+          result.exitCode = codes(result.diagnostics);
         }
         if (req.command === "content add") {
           const parsed = entrySchema.safeParse({
@@ -271,7 +246,8 @@ export async function execute(
         result.configVersion = committed.version;
         if (committed.cancelledAfterCommit)
           result.diagnostics.push(diag("CANCEL_AFTER_COMMIT", "warning"));
-      } else cancelled(signal);
+      } else if (req.command !== "check" && req.command !== "plan")
+        cancelled(signal);
     }
   } catch (e) {
     const err = failure(e);
@@ -294,7 +270,23 @@ export async function execute(
     (a, b) =>
       ({ error: 0, warning: 1, info: 2 })[a.severity] -
         { error: 0, warning: 1, info: 2 }[b.severity] ||
-      a.code.localeCompare(b.code),
+      compareDiagnosticValue(a.code, b.code) ||
+      compareDiagnosticValue(
+        a.location?.path ?? null,
+        b.location?.path ?? null,
+      ) ||
+      compareDiagnosticValue(
+        a.location?.pointer ?? null,
+        b.location?.pointer ?? null,
+      ) ||
+      compareDiagnosticValue(
+        a.location?.line ?? null,
+        b.location?.line ?? null,
+      ) ||
+      compareDiagnosticValue(
+        a.location?.column ?? null,
+        b.location?.column ?? null,
+      ),
   );
   return envelopeSchema.parse(result);
 }

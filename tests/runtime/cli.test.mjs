@@ -120,7 +120,7 @@ test("argument errors and planned commands do not touch nonexistent config", asy
     assert.equal(r.exitCode, 2);
     assert.equal(r.effect, "none");
   }
-  const r = await run(["plan", "--config", "missing"]);
+  const r = await run(["build", "--config", "missing"]);
   assert.equal(r.diagnostics[0].code, "UNSUPPORTED_COMMAND");
 });
 
@@ -157,6 +157,24 @@ test("inspection reports hints without selecting content or exposing note text",
   assert.equal(bad.data.complete, false);
 });
 
+test("plan CLI is deterministic across working directories and reports missing configuration", async (t) => {
+  const s = await sandbox(t);
+  const config = path.join(s.vault, "网站/selected.config.json");
+  const c = JSON.parse(await fs.readFile(config, "utf8"));
+  c.output.directory = s.output;
+  await fs.writeFile(config, JSON.stringify(c));
+  const before = await fs.readFile(config);
+  const args = ["plan", "--config", config];
+  const r = await run(args);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.data.buildable, true);
+  assert.deepEqual(await run(args, os.tmpdir()), r);
+  assert.deepEqual(await fs.readFile(config), before);
+  const missing = await run(["plan", "--config", path.join(s.root, "missing")]);
+  assert.equal(missing.exitCode, 4);
+  assert.equal(missing.diagnostics[0].code, "CONFIG_NOT_FOUND");
+});
+
 test(
   "Windows lifecycle: empty init, stable IDs, idempotence, missing-source remove, profile preservation",
   { skip: process.platform !== "win32" },
@@ -191,9 +209,10 @@ test(
     assert.deepEqual(after.site, c.site);
     assert.deepEqual(after.theme, c.theme);
     const check = await run(["check", "--config", s.config], os.tmpdir());
-    assert.equal(check.exitCode, 0);
-    assert.equal(check.data.buildable, null);
-    assert.deepEqual(check.data.unperformedChecks, ["references"]);
+    assert.equal(check.exitCode, 3);
+    assert.equal(check.data.buildable, false);
+    assert.deepEqual(check.data.failedChecks, ["references"]);
+    assert.deepEqual(check.data.unperformedChecks, []);
     assert.equal(
       (await run(["content", "remove", id, "--config", s.config])).data.changed,
       true,
@@ -218,7 +237,7 @@ test(
 );
 
 test(
-  "empty and site-only check distinguish false from unperformed, output overlap is rejected",
+  "empty and site-only check distinguish false from ready, output overlap is rejected",
   { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
@@ -232,7 +251,7 @@ test(
     await fs.writeFile(s.config, JSON.stringify(c));
     assert.equal(
       (await run(["check", "--config", s.config])).data.buildable,
-      null,
+      true,
     );
     c.output.directory = s.vault;
     await fs.writeFile(s.config, JSON.stringify(c));

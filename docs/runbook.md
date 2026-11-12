@@ -2,7 +2,7 @@
 
 ## 当前可用能力
 
-2026-11-12：可运行 inspect、init、content list/add/remove、基础 check。plan/build/preview/deploy/status/comments 尚未实现，返回不支持。网站与插件仍未开发。
+2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包写出、网站与插件仍未开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
@@ -24,9 +24,13 @@ build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建�
 pnpm --silent corkoro inspect --source "tests/fixtures/vault" --format obsidian-markdown --json
 pnpm --silent corkoro content list --config "tests/fixtures/vault/网站/selected.config.json" --json
 pnpm --silent corkoro check --config "tests/fixtures/vault/网站/selected.config.json" --json
+pnpm --silent corkoro plan --config "tests/fixtures/vault/网站/selected.config.json" --json
+pnpm --silent corkoro plan --config "tests/fixtures/vault/网站/blocked.config.json" --json
 ```
 
-样例 check 的非空输入返回 buildable=null、unperformedChecks=[references]，只说明结构和路径通过；完全空返回 false。基础 check 不判断双链、嵌入、正文资源及完整 Obsidian 兼容性，不能据此发布。
+selected 样例 check/plan 返回 complete=true、buildable=true；plan 列出两篇文章、一页、diagram.svg 与 avatar.svg 的引用理由。blocked 样例退出 3，分别列出未选笔记的链接/嵌入错误，complete=true、buildable=false。完全空的配置退出 0、buildable=false；缺失入口或 IO 中止会留下未完成的检查范围。plan 不写文件、不生成网站、不上传内容；changes=null、BASELINE_NOT_SUPPORTED 表示未比较旧构建。
+
+当前支持 CommonMark 链接/图片/引用式链接，以及 Obsidian 双链/别名和图片引用。只读取已选正文；代码和 frontmatter 内的引用不参与依赖。允许被引用的 PNG/JPEG/GIF/WebP 与受限静态 SVG，不包含未引用附件。标题/块锚点、笔记嵌入、原始 HTML、Dataview 明确拒绝；详细语法、SVG 与格式校验边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。通过规划不代表已有渲染能力。
 
 在用户选择的外部 Vault 创建配置（下列路径需自行替换，不在本轮访问）：
 
@@ -48,12 +52,12 @@ init 创建空配置和必要事务元数据，不创建输出站点。用户填
 
 ## 实际验证范围
 
-11 项测试将人工 Vault 复制到独立临时目录，覆盖严格 JSON/版本结构、参数错误、扫描与只读性、中文路径、跨工作目录、空配置、站点资料、幂等稳定 ID、缺文件停用、保留资料/主题、输出隔离、硬链接/junction 越界、双进程竞争与持有者退出、并发 init、提交后响应丢失重试、版本冲突、取消及遗留临时文件。
+运行时测试将人工 Vault 复制到独立临时目录，覆盖严格 JSON/版本结构、参数错误、扫描与只读性、中文路径、跨工作目录、空配置、站点资料、幂等稳定 ID、缺文件停用、保留资料/主题、输出隔离、硬链接/junction 越界、双进程竞争与持有者退出、并发 init、提交后响应丢失重试、版本冲突、取消及遗留临时文件。新增 planning.test.mjs 验证引用授权、资源来源合并、解析器语法边界、伪装图片、主动 SVG、缺失/歧义与路径错误，并检查只读命令前后的输入文件哈希。
 
 Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色结果当作写入认证。正文、资源的哈希验证与抽象模型检查分别报告。
 
 ## 远端与后续阶段
 
-本轮没有创建 remote、GitHub Actions、Cloudflare 资源、MCP 连接或部署，也不发邮件。第二阶段先实现引用解析和只读 plan，再进入内容包、网站和部署。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析和只读 plan 已落地；下一步定义公开内容包 manifest、转换和输出提交边界，再进入网站。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
