@@ -27,3 +27,4 @@ backups/
 *.sqlite3
 *.db
 .obsidian/
+.corkoro-state/

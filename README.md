@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-2026-11-11：完成目录、协作规范、外部输入边界，以及 Vault 内单配置、纯生成站点、发布范围与 CLI 首版契约，加入人工示例。尚未实现网站、发布 CLI、评论接口或 Obsidian 插件；没有安装业务依赖，也没有配置云端资源。
+2026-11-11：完成目录、协作规范、外部输入边界，以及 Vault 内单配置、纯生成站点、发布范围与 CLI 首版契约，加入人工示例。尚未实现网站、发布 CLI、评论接口或 Obsidian 插件；没有安装业务依赖，也没有配置云端资源。已有独立有限状态验证脚本，用于检查抽象契约，不代表 CLI 已实现或验证。
 
 ## 从这里开始
 
@@ -14,6 +14,8 @@
 - [外部输入与构建边界](docs/decisions/0002-external-input-build.md)
 - [Vault 内单配置与纯生成站点](docs/decisions/0004-vault-config-generated-site.md)
 - [发布范围协议](docs/publication.md)与[CLI 契约](docs/cli.md)
+- [命令状态机、反例与证明边界](docs/state-machine.md)
+- [七命令结果协议](docs/cli-protocol.md)与[配置事务规则](docs/config-transactions.md)
 - [开发计划与待确定事项](docs/roadmap.md)
 - [本地开发和运维说明](docs/runbook.md)
 

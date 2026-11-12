@@ -2,7 +2,7 @@
 
 ## 先读取
 
-先读 `README.md`，再按任务读取 `docs/architecture.md`、`docs/roadmap.md` 和 `docs/runbook.md`。CLI 和内容选择任务还需读取 `docs/cli.md`、`docs/publication.md`。重要取舍以 `docs/decisions/` 为准，新的细化决策优先于旧约定。当前仓库仅有骨架，不要把计划中的能力描述为已经实现。
+先读 `README.md`，再按任务读取 `docs/architecture.md`、`docs/roadmap.md` 和 `docs/runbook.md`。CLI 和内容选择任务还需读取 `docs/cli.md`、`docs/publication.md`。命令校验、并发及提交边界还需读取 `docs/state-machine.md`、`docs/cli-protocol.md` 和 `docs/config-transactions.md`。重要取舍以 `docs/decisions/` 为准，新的细化决策优先于旧约定。当前仓库仅有骨架，不要把计划中的能力描述为已经实现。
 
 ## 修改位置与边界
 
@@ -23,6 +23,7 @@
 - ID 和 slug 保存在配置内清单，页面有独立稳定 ID；停用保留身份。不要把输入配置与生成的构建 manifest 混为一份文件。
 - 原始笔记由用户维护，导出产物由工具维护；不要直接修补生成内容。
 - inspect/check/plan/build 对全部输入只读。init/content 可显式创建/修改 Vault 内指定配置，必须保留其它区块，不改写正文和资源。输出和输入隔离，清理只能触及工具拥有的产物。
+- 配置结构校验与构建内容校验分开；缺源文件不能阻止 remove。合作配置写入串行化，不承诺与不合作编辑器并发写入安全；提交后响应未知先重读状态。校验与渲染使用同一捕获字节，不消费过期 plan 作为授权。
 - 站点项目完全生成，删除输出后应可重建。首版只提供内置 default 主题及配置设置，不实现外部 CSS/布局/组件或主题包接入。
 - 构建不上传内容、不发送通知；部署是单独命令。允许查找附件的目录不等于整目录获准公开。
 - 新评论由服务端固定为待审核；公开接口仅返回已批准评论，不能包含邮箱或内部审核信息。

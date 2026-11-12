@@ -4,7 +4,7 @@
 
 当前只有目录骨架。根 `package.json` 不提供 `dev`、`build`、`test` 等脚本；模块实现后再添加真实命令。
 
-包管理器固定为 pnpm 11.25.0（初始化环境中可用的版本）。首次引入运行时依赖时校验兼容性，固定 Node 版本并提交锁文件。本次未安装依赖。
+包管理器固定为 pnpm 11.25.0（初始化环境中可用的版本）。首次引入运行时依赖时校验兼容性，固定 Node 版本并提交锁文件。未添加业务依赖。
 
 可用的只读检查：
 
@@ -12,6 +12,16 @@
 git status --short
 node -e "JSON.parse(require('node:fs').readFileSync('package.json','utf8')); console.log('package.json OK')"
 ```
+
+## 独立状态模型检查
+
+已存在可运行的抽象验证脚本，仅使用 Node 标准库，不调用 corkoro、不访问真实 Vault、不写磁盘或访问网络：
+
+```powershell
+node tools/verification/cli-state-machine.mjs
+```
+
+输出有限状态/转换数量、并发反例、结果协议分区及事务事件检查。非零退出表示模型检查失败；零退出不代表实际 CLI 正确。模型边界见 [状态机](state-machine.md)。包管理仍使用 pnpm；此脚本无需安装依赖，直接运行 Node。
 
 ## 开发启动前
 
@@ -35,7 +45,7 @@ corkoro plan --config "E:/notes/my-vault/网站/corkoro.config.json" --json
 
 初始化默认空清单及空附件授权；使用者需设置允许的附件目录并显式选择文章。source、config 参数相对调用者目录；配置字段和 init 的 out-dir 相对配置目录；content add 的文章路径相对源根目录。源笔记属性只提供线索，不能自动加入选择。插件传递参数数组，不拼接 shell 字符串。
 
-init/content 只创建或修改指定配置，保留 site/theme，不改正文和资源。inspect/check/plan/build 对全部输入只读。个人资料、友链及默认主题设置内联于配置，关于页和头像通过路径引用；没有独立 publication.json 或需要手改的站点项目。
+init/content 只创建或修改指定配置，保留 site/theme，不改正文和资源；可能使用工具拥有的事务临时文件。执行配置写入时暂停其它编辑器/同步软件对同一配置的写入。正文缺失或坏链不阻止停用对应文章；配置结构错误需先修复。若写入后未收到结果，重新读取配置，不能直接假定未提交。锁忙立即返回 CONFIG_BUSY，不等待、不自动重试。退出 5 表示提交未知，130 只表示已知提交前取消。不要删除 .corkoro-state 锁载体来强行解锁；OS 锁空闲时可以正常重用载体。旧临时文件不自动重放或清除，详见 [恢复规则](config-transactions.md)。inspect/check/plan/build 对全部输入只读。个人资料、友链及默认主题设置内联于配置，关于页和头像通过路径引用；没有独立 publication.json 或需要手改的站点项目。
 
 plan 指明文章、页面、资料、友链与附件的包含理由，阻断未公开引用；JSON 只是一份报告。后续 build、preview、deploy、status 和评论管理的详细参数尚未冻结。构建不上传和发信，部署才产生远端操作。
 
