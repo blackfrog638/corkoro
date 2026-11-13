@@ -2,7 +2,7 @@
 
 已实现最小站点构建库。编译入口为 dist/apps/web/src/index.js，buildSite(bundlePath, outputDirectory, signal?) 生成独立 Astro 项目和静态网站；readSite(outputDirectory) 校验并定位当前站点。
 
-src/render.ts 负责公共正文转义与链接，src/theme.ts 提供内置基础布局，src/index.ts 处理构建和版本切换。支持范围与示例见 [runbook](../../docs/runbook.md)，输出保证见 [决策 0011](../../docs/decisions/0011-generated-site-publication.md)。尚无搜索和完整 build CLI，主题视觉继续完善。
+src/render.ts 负责公共正文转义与链接，src/theme.ts 提供默认主题布局，src/theme-styles.ts 管理响应式与明暗样式，src/index.ts 处理构建和版本切换。支持范围与示例见 [runbook](../../docs/runbook.md)，输出保证见 [决策 0011](../../docs/decisions/0011-generated-site-publication.md)。尚无搜索和完整 build CLI。
 
 提供内置 default 主题及 Astro 站点生成/渲染能力，负责文章、关于页、个人资料、友链、导航、搜索与评论界面。通过显式路径消费公开内容包，不读取原始 Vault，也不要求复制内容到本目录。
 

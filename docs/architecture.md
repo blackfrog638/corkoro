@@ -56,7 +56,7 @@ inspect/check/plan/build 对所有输入只读；init 明确创建配置，conte
 
 首版只有 Corkoro 自带的 default 主题，通过配置设置配色模式和强调色。主题版本跟随工具版本。第三方主题、外部 CSS、布局覆盖和用户组件接口暂不实现，未来若需要再设计。
 
-主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递已实现，公共正文渲染与最小布局已实现，完整主题体验仍待开发。
+主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递、公共正文渲染与默认主题已实现；搜索和完整 build CLI 尚待开发。
 
 ## 构建与部署
 

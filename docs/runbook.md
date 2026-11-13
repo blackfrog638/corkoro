@@ -83,13 +83,13 @@ process.exitCode = result.exitCode;
 '@ | pnpm exec node --input-type=module
 ```
 
-网站库只读公开包，不需要 Vault 或 Obsidian。当前有首页、文章、普通页面及资料/友链的基础呈现，支持配置配色及 base；搜索、完整主题视觉和完整 build CLI 尚未交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
+网站库只读公开包，不需要 Vault 或 Obsidian。当前默认主题提供首页文章摘要、独立作者区、文章与普通页面阅读布局及友链卡片，支持配置配色及 base；搜索和完整 build CLI 尚未交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
 
 输出根保留随机版本目录与 site.current.json。`readSite` 验证活动静态文件摘要并返回 siteDirectory / projectDirectory。只服务或上传 siteDirectory，不要公开整个输出根，其中包含旧版本。可用本地静态服务器查看该目录；配置了 base 时服务器须把该目录挂载到相应前缀。预览不是本轮新增 CLI 命令。
 
 失败保留上次站点，失败目录和旧版本均不自动删除。result.effect 表示当前记录是否提交，retainedDirectory 表示本次分配的目录；unknown 或调用方失去响应时，重新 readSite 核对。坏记录、被手工修改的站点不会自动修复。库仅检查输出与传入包的隔离，使用者仍应选择 Vault 外的输出位置；未来配置级 build 会统一校验所有输入。完整格式、所有权及恢复边界见 [决策 0011](decisions/0011-generated-site-publication.md)。
 
-当前 UI 已用人工样例在 1280px 和 390px 宽度检查首页、文章及导航，在移动宽度检查关于页和友链；图片可加载且无横向溢出。运行时 web.test.mjs 覆盖真实 Astro 构建、正文/属性转义、中文与 base 链接、Vault 离线、锁竞争、构建失败、取消、进程中断、非法产物和文件摘要验证。
+S2 基础布局曾用人工样例在 1280px 和 390px 宽度检查首页、文章及导航，在移动宽度检查关于页和友链；图片可加载且无横向溢出。运行时 web.test.mjs 覆盖真实 Astro 构建、正文/属性转义、中文与 base 链接、Vault 离线、锁竞争、构建失败、取消、进程中断、非法产物和文件摘要验证。
 
 ## Windows 写入与恢复
 
@@ -109,8 +109,16 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；下一步完善默认主题体验，随后接搜索和完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，下一步接搜索，随后实现完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
 
-本轮全量运行时测试 44 项通过；Unicode 组合字符路由回归先复现失败，再统一 NFC 修复。独立审查代理因额度限制中止，未生成完整回执；已对当前改动进行人工复核。Code review: skipped (ce-code-review unavailable) — top-level reviewer terminated at usage limit; manual diff review completed.
+S2 全量运行时测试 44 项通过；Unicode 组合字符路由回归先复现失败，再统一 NFC 修复。独立审查代理因额度限制中止，未生成完整回执；已对当前改动进行人工复核。Code review: skipped (ce-code-review unavailable) — top-level reviewer terminated at usage limit; manual diff review completed.
+
+## S3 默认主题验收
+
+首页摘要仅取已公开正文树的首个顶层段落，合并空白并截取最多 140 个 Unicode 码点；不读取原始 Vault，不改变公开范围。无文章时隐藏文章栏目，无资料或友链时不产生对应栏目。正文已有顶层一级标题则保留；否则使用配置标题补齐。导航显示当前页面，键盘跳转入口将焦点移到正文。
+
+配色使用 theme.settings.colorMode（light/dark/system），accentColor 用于装饰，链接使用文字色。样式无远端字体或客户端脚本依赖。
+
+2026-11-13：全量运行时 47 项通过，随后新增的零文档资料/友链用例与其余主题用例共 4 项单独通过，类型检查通过。真实 Astro 明暗样例构建成功；浏览器检查 1280px 桌面首页、390px 首页/文章/关于/友链，以及深色桌面首页。长代码仅在块内横向滚动，页面不横向溢出，图片加载正常，跳到正文后焦点为 main-content。
