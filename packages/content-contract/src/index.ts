@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { visit } from "jsonc-parser";
 import path from "node:path";
+import { siteAddressSchema } from "./site.js";
 
 export const excluded = new Set([
   ".git",
@@ -84,6 +85,7 @@ export const configSchema = z
     publication: z.strictObject({ entries: z.array(entrySchema) }),
     site: z.strictObject({
       title: text,
+      address: siteAddressSchema.optional(),
       profile: profileSchema.nullable(),
       pages: z.array(pageSchema),
       friends: z.array(friendSchema),

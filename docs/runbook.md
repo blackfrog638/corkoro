@@ -16,6 +16,10 @@ pnpm run verify:model
 
 build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。尚未接 CI。
 
+## 站点地址准备
+
+可在配置 site 内添加 `"address": { "origin": "https://example.org", "base": "/blog/" }`。origin 不带尾斜线，base 必须带首尾斜线；根站点使用 `/`。现有 check 会校验格式，内容包库会携带地址；不填时旧流程保持可用。尚未生成网站，也不会因此部署到该地址。详见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)和[任务拆解](site-implementation-plan.md)。
+
 ## 本地 CLI
 
 从仓库根运行；脚本不需要全局安装。--silent 抑制 pnpm 包装层日志，CLI 自身 --json 只输出一个封装对象。插件/agent 可直接以 Node 可执行文件加绝对 dist/tools/cli/src/main.js 路径调用，避免依赖工作目录或拼接 shell。

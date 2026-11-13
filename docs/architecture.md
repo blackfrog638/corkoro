@@ -56,6 +56,8 @@ inspect/check/plan/build 对所有输入只读；init 明确创建配置，conte
 
 首版只有 Corkoro 自带的 default 主题，通过配置设置配色模式和强调色。主题版本跟随工具版本。第三方主题、外部 CSS、布局覆盖和用户组件接口暂不实现，未来若需要再设计。
 
+主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递已实现，渲染层仍待开发。
+
 ## 构建与部署
 
 第二阶段已实现单文件公开内容包，规范化正文树与 base64 资源一起原子提交，见[内容包协议](content-bundle.md)及[决策 0009](decisions/0009-public-content-bundle.md)。此库入口尚未生成 Astro 网站；以下为完整 build 的目标。

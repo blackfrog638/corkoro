@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { siteAddressSchema } from "./site.js";
 import {
   configSchema,
   diagnosticSchema,
@@ -116,6 +117,7 @@ const publicRoute = z.string().refine((value) => {
 export const manifestSchema = z.strictObject({
   site: z.strictObject({
     title: text,
+    address: siteAddressSchema.optional(),
     profile: profileSchema
       .omit({ avatar: true })
       .extend({ avatar: assetIdSchema.optional() })

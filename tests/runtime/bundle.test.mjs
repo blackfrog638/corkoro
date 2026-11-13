@@ -138,12 +138,18 @@ test(
     const s = await setup(t),
       before = await inputs(s.vault);
     assert.equal(typeof publisher.buildContentBundle, "function");
+    s.c.site.address = { origin: "https://example.org", base: "/blog/" };
+    await s.save();
+    before[path.relative(s.vault, s.config)] = (
+      await fs.readFile(s.config)
+    ).toString("base64");
     const result = await s.build();
     assert.equal(result.effect, "committed");
     assert.equal(result.exitCode, 0);
     const b = await s.read(),
       bytes = await fs.readFile(s.file);
     assert.equal(b.format, "corkoro-content");
+    assert.deepEqual(b.manifest.site.address, s.c.site.address);
     assert.deepEqual(
       b.manifest.documents.map((d) => [d.id, d.kind]),
       [

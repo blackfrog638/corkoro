@@ -16,7 +16,7 @@
 - [发布范围协议](docs/publication.md)与[CLI 契约](docs/cli.md)
 - [命令状态机、反例与证明边界](docs/state-machine.md)
 - [七命令结果协议](docs/cli-protocol.md)与[配置事务规则](docs/config-transactions.md)
-- [开发计划与待确定事项](docs/roadmap.md)
+- [开发计划与待确定事项](docs/roadmap.md)与[第三阶段任务拆解](docs/site-implementation-plan.md)
 - [本地开发和运维说明](docs/runbook.md)
 
 ## 目录

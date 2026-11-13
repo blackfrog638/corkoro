@@ -2,6 +2,10 @@
 
 状态：首版配置结构校验、显式选择、路径和引用检查、plan 及公开内容包构建库已实现；完整 build CLI 和网站尚未实现。CLI 用法见 [命令契约](cli.md)，执行顺序见 [开发计划](roadmap.md)。本协议落实 [单配置决策](decisions/0004-vault-config-generated-site.md)。v1 尚未公开发布；当前开发版采用本协议，无已发布数据迁移。
 
+## 站点地址
+
+可选 site.address 包含 origin 与 base，例如 `{ "origin": "https://example.org", "base": "/blog/" }`。不填写时保留原有内容流程，不推断域名。地址规范、版本兼容及未来渲染规则见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。当前只校验并传入内容包，尚不生成网站。
+
 ## 授权来源
 
 Vault 内单个配置文件的 publication.entries 是当前站点唯一的文章公开授权来源。文章必须有对应 entry 且 `publish` 严格为布尔值 `true` 才能成为构建入口。

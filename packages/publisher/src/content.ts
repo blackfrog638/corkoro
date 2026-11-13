@@ -165,6 +165,9 @@ export function createContentBundle(config: Config, analysis: Analysis) {
     manifest: {
       site: {
         title: config.site.title,
+        ...(config.site.address
+          ? { address: structuredClone(config.site.address) }
+          : {}),
         profile: null,
         friends: structuredClone(config.site.friends),
       },

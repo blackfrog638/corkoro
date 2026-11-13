@@ -9,7 +9,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | format / schemaVersion | 固定 corkoro-content / 1；未知版本或字段拒绝 |
-| manifest.site | title、可空 profile、friends；头像替换为资源 ID |
+| manifest.site | title、可空 profile、friends、可选 address；头像替换为资源 ID |
 | manifest.theme | 经过校验的内置 default 主题设置 |
 | manifest.documents | id、article/page 类型、已编码单段 route、title、contentHash |
 | manifest.assets | id、mediaType、byteLength |
