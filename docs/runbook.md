@@ -2,7 +2,7 @@
 
 ## 当前可用能力
 
-2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；网站与插件仍未开发。
+2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，完整主题体验、搜索与插件仍待开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
@@ -18,7 +18,7 @@ build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建�
 
 ## 站点地址准备
 
-可在配置 site 内添加 `"address": { "origin": "https://example.org", "base": "/blog/" }`。origin 不带尾斜线，base 必须带首尾斜线；根站点使用 `/`。现有 check 会校验格式，内容包库会携带地址；不填时旧流程保持可用。尚未生成网站，也不会因此部署到该地址。详见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)和[任务拆解](site-implementation-plan.md)。
+可在配置 site 内添加 `"address": { "origin": "https://example.org", "base": "/blog/" }`。origin 不带尾斜线，base 必须带首尾斜线；根站点使用 `/`。现有 check 会校验格式，内容包库会携带地址；不填时旧流程保持可用。最小网站库已消费地址；不会因此部署到该地址。详见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)和[任务拆解](site-implementation-plan.md)。
 
 ## 本地 CLI
 
@@ -69,6 +69,28 @@ process.exitCode = result.exitCode;
 
 内容包写入锁忙为 OUTPUT_BUSY，冲突为 OUTPUT_CHANGED。effect=unknown、退出 5 或调用方未收到响应时，先用 readContentBundle 读取目标，核对 buildId/manifest，再用当前配置重试；不重放 .tmp，不把历史结果当作当前发布授权。输入正文和资源始终只读；源编辑发生在捕获之后不会改变本次转换，下一次构建会重新检查。
 
+## 最小 Astro 站点库入口
+
+先构建内容包，再从仓库根调用网站库（不是 `corkoro build`）：
+
+```powershell
+@'
+import { buildSite, readSite } from './dist/apps/web/src/index.js';
+const result = await buildSite('.local/example-sites/selected/content.bundle.json', '.local/site-preview');
+console.log(JSON.stringify(result, null, 2));
+if (result.ok) console.log((await readSite('.local/site-preview')).siteDirectory);
+process.exitCode = result.exitCode;
+'@ | pnpm exec node --input-type=module
+```
+
+网站库只读公开包，不需要 Vault 或 Obsidian。当前有首页、文章、普通页面及资料/友链的基础呈现，支持配置配色及 base；搜索、完整主题视觉和完整 build CLI 尚未交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
+
+输出根保留随机版本目录与 site.current.json。`readSite` 验证活动静态文件摘要并返回 siteDirectory / projectDirectory。只服务或上传 siteDirectory，不要公开整个输出根，其中包含旧版本。可用本地静态服务器查看该目录；配置了 base 时服务器须把该目录挂载到相应前缀。预览不是本轮新增 CLI 命令。
+
+失败保留上次站点，失败目录和旧版本均不自动删除。result.effect 表示当前记录是否提交，retainedDirectory 表示本次分配的目录；unknown 或调用方失去响应时，重新 readSite 核对。坏记录、被手工修改的站点不会自动修复。库仅检查输出与传入包的隔离，使用者仍应选择 Vault 外的输出位置；未来配置级 build 会统一校验所有输入。完整格式、所有权及恢复边界见 [决策 0011](decisions/0011-generated-site-publication.md)。
+
+当前 UI 已用人工样例在 1280px 和 390px 宽度检查首页、文章及导航，在移动宽度检查关于页和友链；图片可加载且无横向溢出。运行时 web.test.mjs 覆盖真实 Astro 构建、正文/属性转义、中文与 base 链接、Vault 离线、锁竞争、构建失败、取消、进程中断、非法产物和文件摘要验证。
+
 ## Windows 写入与恢复
 
 本轮实际验证 Windows + 本地固定 NTFS 卷 + Windows PowerShell/.NET。辅助进程以 windowsHide、参数数组启动；结构化 stdin 传路径/内容信息，不拼 shell。稳定空锁文件由 FileShare.None 互斥持有；更新通过 File.Replace，首次创建用同卷 File.Move。其它平台、UNC 或不支持卷返回 TRANSACTION_UNSUPPORTED。PowerShell 被环境策略禁用时不绕过策略。
@@ -87,6 +109,8 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan 和公开内容包库已落地；下一步实现 Astro 默认主题、生成站点及完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；下一步完善默认主题体验，随后接搜索和完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
+
+本轮全量运行时测试 44 项通过；Unicode 组合字符路由回归先复现失败，再统一 NFC 修复。独立审查代理因额度限制中止，未生成完整回执；已对当前改动进行人工复核。Code review: skipped (ce-code-review unavailable) — top-level reviewer terminated at usage limit; manual diff review completed.

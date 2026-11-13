@@ -13,5 +13,9 @@
     "types": ["node"],
     "noEmitOnError": true
   },
-  "include": ["packages/*/src/**/*.ts", "tools/cli/src/**/*.ts"]
+  "include": [
+    "packages/*/src/**/*.ts",
+    "tools/cli/src/**/*.ts",
+    "apps/web/src/**/*.ts"
+  ]
 }

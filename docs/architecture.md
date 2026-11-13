@@ -1,6 +1,6 @@
 # 架构
 
-本文是目标架构；本地 CLI、配置校验、Windows 配置写入、只读引用规划及公开内容包构建库已有运行时代码，完整 build CLI 与网站链路仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
+本文是目标架构；本地 CLI、配置校验、Windows 配置写入、只读引用规划及公开内容包构建库已有运行时代码，最小 Astro 站点构建库也已实现，完整 build CLI 与后续搜索/部署仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
 
 ## 三类位置
 
@@ -56,11 +56,11 @@ inspect/check/plan/build 对所有输入只读；init 明确创建配置，conte
 
 首版只有 Corkoro 自带的 default 主题，通过配置设置配色模式和强调色。主题版本跟随工具版本。第三方主题、外部 CSS、布局覆盖和用户组件接口暂不实现，未来若需要再设计。
 
-主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递已实现，渲染层仍待开发。
+主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递已实现，公共正文渲染与最小布局已实现，完整主题体验仍待开发。
 
 ## 构建与部署
 
-第二阶段已实现单文件公开内容包，规范化正文树与 base64 资源一起原子提交，见[内容包协议](content-bundle.md)及[决策 0009](decisions/0009-public-content-bundle.md)。此库入口尚未生成 Astro 网站；以下为完整 build 的目标。
+第二阶段已实现单文件公开内容包，规范化正文树与 base64 资源一起原子提交，见[内容包协议](content-bundle.md)及[决策 0009](decisions/0009-public-content-bundle.md)。网站库另消费公开内容包并生成 Astro 项目与静态网站，采用[单指针版本切换](decisions/0011-generated-site-publication.md)；以下为完整 build 的目标。
 
 build 只写指定输出，可生成内容包、Astro 项目和静态网站；任何手工修改产物都会在下次重建丢失。校验与渲染消费同一批捕获字节，输出先暂存后提交，不能直接破坏当前有效版本。提交前失败与提交后响应未知分别处理，文件系统保证需经实现验证；详见 [状态机](state-machine.md)。部署是另一项显式操作，区分上传、构建和真实部署完成。
 
