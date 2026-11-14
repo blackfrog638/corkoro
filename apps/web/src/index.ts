@@ -10,7 +10,11 @@ import {
   type SiteResult,
 } from "../../../packages/content-contract/src/site-output.js";
 import { parseJson } from "../../../packages/content-contract/src/index.js";
-import { readContentBundle } from "../../../packages/publisher/src/bundle.js";
+import {
+  readContentBundle,
+  parseBundle,
+} from "../../../packages/publisher/src/bundle.js";
+import type { ContentBundle } from "../../../packages/content-contract/src/bundle.js";
 import {
   canonical,
   inside,
@@ -133,7 +137,7 @@ async function runAstro(project: string, signal?: AbortSignal) {
 }
 
 export async function buildSite(
-  bundlePath: string,
+  bundlePath: string | ContentBundle,
   outputDirectory: string,
   signal?: AbortSignal,
 ): Promise<SiteResult> {
@@ -148,12 +152,24 @@ export async function buildSite(
   let tx: Awaited<ReturnType<typeof openTransaction>> | undefined;
   try {
     cancelled(signal);
-    if (!bundlePath?.trim() || !outputDirectory?.trim())
+    if (
+      !bundlePath ||
+      (typeof bundlePath === "string" && !bundlePath.trim()) ||
+      !outputDirectory?.trim()
+    )
       throw new Failure("INVALID_ARGUMENT", 2);
-    const input = await canonical(path.resolve(bundlePath)),
-      output = await canonical(path.resolve(outputDirectory));
-    if (inside(output, input)) throw new Failure("OUTPUT_OVERLAP", 3);
-    const bundle = await readContentBundle(input);
+    // Clone and validate before the first await: callers cannot mutate this build's snapshot.
+    const captured =
+      typeof bundlePath === "string"
+        ? null
+        : parseBundle(Buffer.from(JSON.stringify(bundlePath)));
+    const input =
+      typeof bundlePath === "string"
+        ? await canonical(path.resolve(bundlePath))
+        : null;
+    const output = await canonical(path.resolve(outputDirectory));
+    if (input && inside(output, input)) throw new Failure("OUTPUT_OVERLAP", 3);
+    const bundle = captured ?? (await readContentBundle(input!));
     let pages;
     try {
       pages = defaultPages(bundle);

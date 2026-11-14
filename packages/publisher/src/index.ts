@@ -26,6 +26,7 @@ import {
 export { openTransaction } from "./transaction.js";
 export { Failure } from "./errors.js";
 export { buildContentBundle, readContentBundle } from "./bundle.js";
+export { captureContent } from "./capture.js";
 export type Request = {
   command: Command;
   config?: string;

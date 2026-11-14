@@ -26,7 +26,7 @@ import {
   compareDiagnostics,
 } from "./errors.js";
 
-function parseBundle(bytes: Buffer): ContentBundle {
+export function parseBundle(bytes: Buffer): ContentBundle {
   try {
     const bundle = bundleSchema.parse(parseJson(bytes));
     for (const asset of bundle.assets)

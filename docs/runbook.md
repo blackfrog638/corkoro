@@ -2,6 +2,8 @@
 
 ## 当前可用能力
 
+2026-11-14 S5 进展：publisher 导出 captureContent(configPath, signal?)，返回只读捕获的公开 bundle、configVersion、outputDirectory、diagnostics；网站 buildSite 首参数可直接接收该 bundle。该入口尚未接 CLI，build 命令仍不支持。快照交接及后续单提交设计见 [决策 0012](decisions/0012-build-cli-snapshot-handoff.md)。
+
 2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，完整主题体验、搜索与插件仍待开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
