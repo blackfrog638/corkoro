@@ -4,7 +4,7 @@
 
 ## 当前状态与依据
 
-第一、二阶段已交付本地实现；引用检查、只读 plan、公开内容包 v1 及库入口的原子写出已实现，支持范围见 runbook、决策 0008 与 0009。已有独立有限状态模型。最小 Astro 站点构建库已在第三阶段落地；完整 build CLI 已实现，云资源和 CI 仍待实现。以下阶段条目保留原验收顺序。依据为 [架构](architecture.md)、[发布范围协议](publication.md)、[CLI 契约](cli.md) 和 [发布选择决策](decisions/0003-publication-selection.md)及[单配置决策](decisions/0004-vault-config-generated-site.md)。
+第一、二阶段已交付本地实现；引用检查、只读 plan、公开内容包 v1 及库入口的原子写出已实现，支持范围见 runbook、决策 0008 与 0009。已有独立有限状态模型。最小 Astro 站点构建库已在第三阶段落地；完整 build CLI 已实现，CI 已配置待远端验证，云资源仍待实现。以下阶段条目保留原验收顺序。依据为 [架构](architecture.md)、[发布范围协议](publication.md)、[CLI 契约](cli.md) 和 [发布选择决策](decisions/0003-publication-selection.md)及[单配置决策](decisions/0004-vault-config-generated-site.md)。
 
 2026-11-12 补齐七命令的 [结果协议](cli-protocol.md)和[配置事务协议](config-transactions.md)，包括立即拒绝锁忙、阶段取消、提交未知与保留旧临时文件。随后已实施第一阶段本地 CLI，命令及支持范围见 runbook。各阶段按依赖推进，第一阶段不需要真实 Vault、云账号或域名。
 
@@ -45,7 +45,7 @@
 
 ## 第三阶段：内置默认主题与纯生成站点
 
-实施拆解见[第三阶段执行清单](site-implementation-plan.md)。2026-11-13 已完成 S1 地址契约，2026-11-13 最小站点构建库也已实现（决策 0011）；S3 默认主题与桌面/移动布局验收也已完成；S4 静态搜索已接入并验证根路径/子路径查询；接下来实现完整 build CLI。
+实施拆解见[第三阶段执行清单](site-implementation-plan.md)。2026-11-13 已完成 S1 地址契约，2026-11-13 最小站点构建库也已实现（决策 0011）；S3 默认主题与桌面/移动布局验收也已完成；S4 静态搜索已接入并验证根路径/子路径查询；完整 build CLI 已实现；CI 已配置并通过本地验证，等待远端首次运行。
 
 **依赖**：第二阶段。涉及 `apps/web` 和 CLI 的构建适配。
 

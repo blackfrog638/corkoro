@@ -13,7 +13,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm run build && node --test tests/runtime/*.test.mjs",
     "corkoro": "node dist/tools/cli/src/main.js",
-    "verify:model": "node tools/verification/cli-state-machine.mjs"
+    "verify:model": "node tools/verification/cli-state-machine.mjs",
+    "verify:sites": "node tools/verification/sites.mjs"
   },
   "dependencies": {
     "astro": "7.4.11",

@@ -16,7 +16,7 @@ pnpm test
 pnpm run verify:model
 ```
 
-build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。尚未接 CI。
+build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。已配置 Windows CI，远端首次执行待推送后确认。
 
 ## 站点地址准备
 
@@ -111,7 +111,7 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。尚未配置 GitHub Actions、Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，下一步接搜索，随后实现完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，下一步接搜索，随后实现完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
 
@@ -137,3 +137,13 @@ pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" -
 成功结果 data.siteDirectory 是唯一应服务或部署的目录，其中 content.bundle.json 是同版本公开内容包，不包含原始私有配置。site.current.json 的摘要清单同时保护内容包、HTML 和搜索文件。不要公开输出根。旧版本与失败目录保留；退出 5 或失去响应后用网站库 readSite 核对。构建首版只支持 Windows 本地 NTFS，不自动安装依赖或访问远端。
 
 2026-11-14 S5 验证：全量 50 项运行时测试通过。真实 CLI 在两个不同 cwd 使用同一绝对配置构建，核对 configVersion、buildId 与生成内容包；站点失败/取消/竞争及旧版本保持回归通过。
+
+## CI（S6）
+
+`.github/workflows/ci.yml` 在 push、pull_request 和手动触发时运行，使用 windows-2025，避免 Windows 写入测试被平台跳过。Node 读取 .node-version，pnpm 读取 package.json 的 packageManager，Action 固定提交 SHA。任务顺序：冻结锁文件安装、实际 Node 版本核对、typecheck、test（含编译）、verify:model、verify:sites。失败即终止，超时 20 分钟。
+
+`pnpm run verify:sites` 要求先执行 `pnpm run build`，复制仓库人工 Vault 到系统临时目录，通过真实 CLI 构建 selected/pages-only，确认空配置和未授权引用返回退出 3；核对输入文件摘要及站点指针清单。临时目录保留供排查，路径打印在结果中，不写真实 Vault。
+
+工作流只有 contents:read 权限，不保留 checkout 凭据，不用 secrets、不部署、不上传产物。PR 代码只在临时托管 runner 上运行，未使用 pull_request_target。固定 Action 来源：[checkout](https://github.com/actions/checkout)、[setup-node](https://github.com/actions/setup-node)、[pnpm/action-setup](https://github.com/pnpm/action-setup)。
+
+2026-11-14 本地实测：冻结锁安装、类型检查、有限模型、四种人工场景通过；运行时代码未变，沿用上一提交全量 50 项通过记录。YAML 解析及格式检查通过。尚未推送，不能将这些结果表述为 GitHub Actions 已成功运行。
