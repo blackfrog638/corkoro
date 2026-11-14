@@ -1,4 +1,7 @@
 import test from "node:test";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { envelopeSchema } from "../../dist/packages/content-contract/src/index.js";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -25,6 +28,24 @@ test(
       await assert.rejects(fs.stat(captured.outputDirectory), {
         code: "ENOENT",
       });
+      const cli = path.resolve("dist/tools/cli/src/main.js");
+      for (const cwd of [root, vault]) {
+        const { stdout } = await promisify(execFile)(
+          process.execPath,
+          [cli, "build", "--config", config, "--json"],
+          { cwd },
+        );
+        const response = envelopeSchema.parse(JSON.parse(stdout));
+        assert.equal(response.ok, true, stdout);
+        const bundle = JSON.parse(
+          await fs.readFile(
+            path.join(response.data.siteDirectory, "content.bundle.json"),
+            "utf8",
+          ),
+        );
+        assert.equal(bundle.buildId, captured.bundle.buildId);
+        assert.equal(response.configVersion, captured.configVersion);
+      }
       await fs.rename(vault, path.join(root, "offline"));
       const expected = captured.bundle.buildId;
       const pending = buildSite(captured.bundle, captured.outputDirectory);

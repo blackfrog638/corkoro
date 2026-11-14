@@ -120,7 +120,7 @@ test("argument errors and planned commands do not touch nonexistent config", asy
     assert.equal(r.exitCode, 2);
     assert.equal(r.effect, "none");
   }
-  const r = await run(["build", "--config", "missing"]);
+  const r = await run(["preview", "--config", "missing"]);
   assert.equal(r.diagnostics[0].code, "UNSUPPORTED_COMMAND");
 });
 

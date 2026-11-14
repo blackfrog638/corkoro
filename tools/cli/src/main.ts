@@ -1,3 +1,4 @@
+import { executeBuild } from "./build.js";
 import {
   execute,
   Failure,
@@ -19,7 +20,9 @@ function parse(): Request | "help" | "version" {
     args.at(-1) === "--help" &&
     (args.length === 1 ||
       (args.length === 2 &&
-        ["inspect", "init", "content", "check", "plan"].includes(args[0]!)) ||
+        ["inspect", "init", "content", "check", "plan", "build"].includes(
+          args[0]!,
+        )) ||
       (args.length === 3 &&
         args[0] === "content" &&
         ["list", "add", "remove"].includes(args[1]!)))
@@ -49,6 +52,7 @@ function parse(): Request | "help" | "version" {
     "content remove": ["config", "json"],
     check: ["config", "json"],
     plan: ["config", "json"],
+    build: ["config", "json"],
   };
   const values: Record<string, string> = {};
   const positions: string[] = [];
@@ -103,11 +107,14 @@ try {
   const request = parse();
   if (request === "help")
     process.stdout.write(
-      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nPlanned: build, preview, deploy, status, comments\n",
+      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\nPlanned: preview, deploy, status, comments\n",
     );
   else if (request === "version") process.stdout.write("0.0.0\n");
   else {
-    const result = await execute(request, abort.signal);
+    const result =
+      request.command === "build"
+        ? await executeBuild(request.config!, abort.signal)
+        : await execute(request, abort.signal);
     process.exitCode = result.exitCode;
     process.stdout.write(
       json

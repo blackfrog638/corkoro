@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。已实现[公开内容包 v1](docs/content-bundle.md)的库入口、转换与 Windows 原子写出。2026-11-13 已增加最小 Astro 站点构建库（见 runbook）；默认主题及 Pagefind 搜索已实现；完整 build CLI、部署、评论接口和 Obsidian 插件尚未实现；没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
+2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。已实现[公开内容包 v1](docs/content-bundle.md)的库入口、转换与 Windows 原子写出。2026-11-13 已增加最小 Astro 站点构建库（见 runbook）；默认主题及 Pagefind 搜索已实现；完整 build CLI 已实现；部署、评论接口和 Obsidian 插件尚未实现；没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
 
 ## 从这里开始
 

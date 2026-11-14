@@ -125,3 +125,7 @@ type PlanData = {
 ## 完备性的限定
 
 在已列明的输入类别、阶段事件和环境假设下，每个请求必须选择一个互斥终态；失败、明确拒绝和结果未知也属于定义过的终态。不要求任意请求成功。URI/Markdown 解析器、OS 原子提交和进程锁仍是适配层证明义务；形式化覆盖这些抽象事件不证明适配层实现正确。
+
+## build 扩展（2026-11-14）
+
+build 使用同一 envelope；data 为 { buildId, outputDirectory, siteDirectory, retainedDirectory }，后两项可为 null。成功必须 effect=committed 且 siteDirectory 非空。捕获失败 data=null；生成失败可保留路径信息但不返回有效站点目录。提交未知沿用 data/configVersion=null。守卫为参数校验 → 当前配置捕获/隔离/内容校验 → 站点锁/旧版本完整性 → 新版本构建 → 单指针提交。退出码沿用现有类别。有限七命令模型未扩展到 build，不将运行时测试称为形式化证明。

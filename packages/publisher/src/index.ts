@@ -56,6 +56,12 @@ export async function execute(
     if (!requestSchema.safeParse(req).success)
       throw new Failure("INVALID_ARGUMENT", 2);
     cancelled(signal);
+    if (req.command === "build")
+      throw new Failure(
+        "UNSUPPORTED_COMMAND",
+        2,
+        "Use the build CLI orchestrator",
+      );
     if (req.command === "inspect") {
       const inspected = await inspect(path.resolve(req.source!), signal);
       result.data = inspected.data;

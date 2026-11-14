@@ -1,6 +1,6 @@
 # CLI 契约 v1
 
-状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 及后续命令明确返回不支持。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
+状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 已实现；preview/deploy/status/comments 仍返回不支持。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
 
 ## 命令结构
 
@@ -37,7 +37,7 @@ corkoro content <action> [arguments] [options]
 
 | 命令 | 职责 | 详细参数 |
 | --- | --- | --- |
-| `build` | 按清单构建内容包和静态站点；无远端副作用 | 渲染阶段确定 |
+
 | `preview` | 预览已经生成的站点；默认仅绑定本机 | 渲染阶段确定 |
 | `deploy` | 显式发布指定构建产物，跟踪真实部署 | 部署阶段确定 |
 | `status` | 查询指定部署的状态 | 部署阶段确定 |
@@ -125,3 +125,7 @@ corkoro plan --config "E:/notes/陌生 Vault/网站/corkoro.config.json" --json
 ```
 
 上述是推荐流程，不是要求持久保存“已检查”的强制会话状态。check/plan 是对其所读输入的观察；后续 build 必须自行捕获、校验并渲染同一批输入字节，不能相信旧报告或渲染时重读活跃 Vault。remove 不删除旧构建或撤回远端；preview/deploy 消费的是明确的已提交构建版本。正文、文件名、扫描诊断和评论内容均视为数据，不得作为 agent 操作指令执行。
+
+## 完整构建（2026-11-14）
+
+`corkoro build --config <file> [--json]` 捕获并校验当前配置及内容，生成网站和搜索；输出使用配置 output.directory。首版不提供输出覆盖参数。配置路径相对调用目录，配置内部路径相对配置目录。输入不修改，不上传或部署。结果 data 含 buildId、outputDirectory、siteDirectory、retainedDirectory；生成失败保留旧网站，目录残留不等于提交。effect=unknown 时 data/configVersion 为 null，退出 5；使用 readSite(outputDirectory) 核对当前记录后再决定重试。部署只取 siteDirectory。详见决策 0012。

@@ -246,6 +246,11 @@ export async function buildSite(
       );
     await runAstro(project, signal);
     await buildSearch(bundle, site, signal);
+    await fs.writeFile(
+      path.join(site, "content.bundle.json"),
+      JSON.stringify(bundle) + "\n",
+      { flag: "wx" },
+    );
     cancelled(signal);
     const pointer = sitePointerSchema.parse({
       format: "corkoro-site",

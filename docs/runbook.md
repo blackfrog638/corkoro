@@ -2,9 +2,9 @@
 
 ## 当前可用能力
 
-2026-11-14 S5 进展：publisher 导出 captureContent(configPath, signal?)，返回只读捕获的公开 bundle、configVersion、outputDirectory、diagnostics；网站 buildSite 首参数可直接接收该 bundle。该入口尚未接 CLI，build 命令仍不支持。快照交接及后续单提交设计见 [决策 0012](decisions/0012-build-cli-snapshot-handoff.md)。
+2026-11-14 S5 进展：publisher 导出 captureContent(configPath, signal?)，返回只读捕获的公开 bundle、configVersion、outputDirectory、diagnostics；网站 buildSite 首参数可直接接收该 bundle。该入口已接入 build --config <file> [--json]，输出使用配置 output.directory。快照交接及后续单提交设计见 [决策 0012](decisions/0012-build-cli-snapshot-handoff.md)。
 
-2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。build/preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，完整主题体验、搜索与插件仍待开发。
+2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，默认主题与搜索已实现，插件仍待开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
@@ -126,3 +126,14 @@ S2 全量运行时测试 44 项通过；Unicode 组合字符路由回归先复�
 配色使用 theme.settings.colorMode（light/dark/system），accentColor 用于装饰，链接使用文字色。样式无远端字体或客户端脚本依赖。
 
 2026-11-13：全量运行时 47 项通过，随后新增的零文档资料/友链用例与其余主题用例共 4 项单独通过，类型检查通过。真实 Astro 明暗样例构建成功；浏览器检查 1280px 桌面首页、390px 首页/文章/关于/友链，以及深色桌面首页。长代码仅在块内横向滚动，页面不横向溢出，图片加载正常，跳到正文后焦点为 main-content。
+
+## 完整构建 CLI
+
+```powershell
+pnpm run build
+pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" --json
+```
+
+成功结果 data.siteDirectory 是唯一应服务或部署的目录，其中 content.bundle.json 是同版本公开内容包，不包含原始私有配置。site.current.json 的摘要清单同时保护内容包、HTML 和搜索文件。不要公开输出根。旧版本与失败目录保留；退出 5 或失去响应后用网站库 readSite 核对。构建首版只支持 Windows 本地 NTFS，不自动安装依赖或访问远端。
+
+2026-11-14 S5 验证：全量 50 项运行时测试通过。真实 CLI 在两个不同 cwd 使用同一绝对配置构建，核对 configVersion、buildId 与生成内容包；站点失败/取消/竞争及旧版本保持回归通过。

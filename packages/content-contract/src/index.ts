@@ -134,6 +134,7 @@ export const configSchema = z
 export type Config = z.infer<typeof configSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export const commandSchema = z.enum([
+  "build",
   "inspect",
   "init",
   "content list",
@@ -325,6 +326,20 @@ export const envelopeSchema = z
     }
     let schema: z.ZodType;
     switch (v.command) {
+      case "build":
+        schema = z.strictObject({
+          buildId: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+          outputDirectory: z.string(),
+          siteDirectory: z.string().nullable(),
+          retainedDirectory: z.string().nullable(),
+        });
+        if (
+          v.ok &&
+          (v.effect !== "committed" ||
+            !(v.data as { siteDirectory?: string }).siteDirectory)
+        )
+          c.addIssue({ code: "custom", message: "Invalid build result" });
+        break;
       case "inspect":
         schema = inspectSchema;
         break;

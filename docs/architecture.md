@@ -1,6 +1,6 @@
 # 架构
 
-本文是目标架构；本地 CLI、配置校验、Windows 配置写入、只读引用规划及公开内容包构建库已有运行时代码，最小 Astro 站点构建库也已实现，默认主题与静态搜索已实现，完整 build CLI 与部署仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
+本文是目标架构；本地 CLI、配置校验、Windows 配置写入、只读引用规划及公开内容包构建库已有运行时代码，最小 Astro 站点构建库也已实现，默认主题与静态搜索已实现，完整 build CLI 已实现，部署仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
 
 ## 三类位置
 

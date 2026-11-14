@@ -4,7 +4,7 @@
 
 ## 当前状态与依据
 
-第一、二阶段已交付本地实现；引用检查、只读 plan、公开内容包 v1 及库入口的原子写出已实现，支持范围见 runbook、决策 0008 与 0009。已有独立有限状态模型。最小 Astro 站点构建库已在第三阶段落地；完整 build CLI、云资源和 CI 仍待实现。以下阶段条目保留原验收顺序。依据为 [架构](architecture.md)、[发布范围协议](publication.md)、[CLI 契约](cli.md) 和 [发布选择决策](decisions/0003-publication-selection.md)及[单配置决策](decisions/0004-vault-config-generated-site.md)。
+第一、二阶段已交付本地实现；引用检查、只读 plan、公开内容包 v1 及库入口的原子写出已实现，支持范围见 runbook、决策 0008 与 0009。已有独立有限状态模型。最小 Astro 站点构建库已在第三阶段落地；完整 build CLI 已实现，云资源和 CI 仍待实现。以下阶段条目保留原验收顺序。依据为 [架构](architecture.md)、[发布范围协议](publication.md)、[CLI 契约](cli.md) 和 [发布选择决策](decisions/0003-publication-selection.md)及[单配置决策](decisions/0004-vault-config-generated-site.md)。
 
 2026-11-12 补齐七命令的 [结果协议](cli-protocol.md)和[配置事务协议](config-transactions.md)，包括立即拒绝锁忙、阶段取消、提交未知与保留旧临时文件。随后已实施第一阶段本地 CLI，命令及支持范围见 runbook。各阶段按依赖推进，第一阶段不需要真实 Vault、云账号或域名。
 
