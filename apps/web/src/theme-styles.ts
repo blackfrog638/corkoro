@@ -1,4 +1,5 @@
 export const defaultStyles = `
+.site-search{margin-bottom:40px}.site-search summary{cursor:pointer;margin-bottom:16px}.site-search pagefind-input{display:block}
 *{box-sizing:border-box}
 :root{--paper:light-dark(#faf9f6,#171a1c);--ink:light-dark(#222a2e,#e9e9e4);--muted:light-dark(#596368,#acb4b7);--line:light-dark(#dcded8,#3b4245);--surface:light-dark(#f0f0ea,#22282b);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.75}
 html{background:var(--paper);color:var(--ink)}body{margin:0}a{color:inherit;text-underline-offset:.24em;overflow-wrap:anywhere}a:hover{text-decoration-thickness:2px}a:focus-visible{outline:2px solid var(--ink);outline-offset:5px}

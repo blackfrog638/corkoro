@@ -26,6 +26,7 @@ import {
   compareDiagnostics,
 } from "../../../packages/publisher/src/errors.js";
 import { defaultPages } from "./theme.js";
+import { buildSearch } from "./search.js";
 
 const require = createRequire(import.meta.url);
 const astroPackage = path.dirname(require.resolve("astro/package.json"));
@@ -228,6 +229,7 @@ export async function buildSite(
         { flag: "wx" },
       );
     await runAstro(project, signal);
+    await buildSearch(bundle, site, signal);
     cancelled(signal);
     const pointer = sitePointerSchema.parse({
       format: "corkoro-site",

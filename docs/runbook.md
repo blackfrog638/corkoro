@@ -83,7 +83,7 @@ process.exitCode = result.exitCode;
 '@ | pnpm exec node --input-type=module
 ```
 
-网站库只读公开包，不需要 Vault 或 Obsidian。当前默认主题提供首页文章摘要、独立作者区、文章与普通页面阅读布局及友链卡片，支持配置配色及 base；搜索和完整 build CLI 尚未交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
+网站库只读公开包，不需要 Vault 或 Obsidian。当前默认主题提供首页文章摘要、独立作者区、文章与普通页面阅读布局及友链卡片，支持配置配色及 base；完整 build CLI 尚未交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
 
 输出根保留随机版本目录与 site.current.json。`readSite` 验证活动静态文件摘要并返回 siteDirectory / projectDirectory。只服务或上传 siteDirectory，不要公开整个输出根，其中包含旧版本。可用本地静态服务器查看该目录；配置了 base 时服务器须把该目录挂载到相应前缀。预览不是本轮新增 CLI 命令。
 
@@ -116,6 +116,8 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 S2 全量运行时测试 44 项通过；Unicode 组合字符路由回归先复现失败，再统一 NFC 修复。独立审查代理因额度限制中止，未生成完整回执；已对当前改动进行人工复核。Code review: skipped (ce-code-review unavailable) — top-level reviewer terminated at usage limit; manual diff review completed.
 
 ## S3 默认主题验收
+
+2026-11-14 S4 进展：网站库在 Astro 成功后、当前站点指针提交前生成 Pagefind 1.6.0 索引；索引进入同一静态文件摘要清单。仅逐条索引公开内容包中的文章和站点页正文，URL 复用 base/NFC 编码规则，不扫描 Vault、首页、资料或友链。零文档站点不生成索引。索引错误阻止新版本提交；取消在索引操作之间检查。已接入 Pagefind 官方组件，页面正文前提供可折叠搜索，无文档则隐藏。浏览器已验证中文“人工”“起步”、无结果提示、根路径与 /blog/ 结果跳转及 390px 无横向溢出；中文分词质量仅以人工样例验证，不承诺任意子串匹配。搜索在浏览器执行，无后端；禁用 JavaScript 时保留浏览导航。
 
 首页摘要仅取已公开正文树的首个顶层段落，合并空白并截取最多 140 个 Unicode 码点；不读取原始 Vault，不改变公开范围。无文章时隐藏文章栏目，无资料或友链时不产生对应栏目。正文已有顶层一级标题则保留；否则使用配置标题补齐。导航显示当前页面，键盘跳转入口将焦点移到正文。
 

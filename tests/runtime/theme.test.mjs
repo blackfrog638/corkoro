@@ -61,6 +61,7 @@ test("default theme supplies accessible navigation and a title for a headingless
   assert.match(article, /&lt;script&gt;不是代码&lt;\/script&gt;/);
   assert.doesNotMatch(article, /<script>/);
   assert.match(home, /href="\/blog\/entry\/"/);
+  assert.match(home, /bundle-path="\/blog\/pagefind\/" base-url="\/"/);
 });
 test("page-only sites hide the article section; profile and friends are optional and escaped", () => {
   const pages = defaultPages(
@@ -103,6 +104,7 @@ test("profile-only and friend-only sites render without article placeholders", (
     payload.documents = [];
     payload.manifest.documents = [];
     const pages = defaultPages(sealBundle(payload));
+    assert.doesNotMatch(pages[0].html, /<pagefind-|src="[^"]*pagefind/);
     assert.doesNotMatch(pages[0].html, /id="articles"/);
     if (site.profile) assert.match(pages[0].html, /公开资料/);
     else assert.ok(pages.find((p) => p.slug === "friends"));

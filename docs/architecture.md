@@ -1,6 +1,6 @@
 # 架构
 
-本文是目标架构；本地 CLI、配置校验、Windows 配置写入、只读引用规划及公开内容包构建库已有运行时代码，最小 Astro 站点构建库也已实现，完整 build CLI 与后续搜索/部署仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
+本文是目标架构；本地 CLI、配置校验、Windows 配置写入、只读引用规划及公开内容包构建库已有运行时代码，最小 Astro 站点构建库也已实现，默认主题与静态搜索已实现，完整 build CLI 与部署仍待实现。权威输入与命令见 [发布范围协议](publication.md)、[CLI 契约](cli.md)。最新边界由 [单配置与纯生成站点 ADR](decisions/0004-vault-config-generated-site.md) 确定。
 
 ## 三类位置
 
@@ -56,7 +56,7 @@ inspect/check/plan/build 对所有输入只读；init 明确创建配置，conte
 
 首版只有 Corkoro 自带的 default 主题，通过配置设置配色模式和强调色。主题版本跟随工具版本。第三方主题、外部 CSS、布局覆盖和用户组件接口暂不实现，未来若需要再设计。
 
-主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递、公共正文渲染与默认主题已实现；搜索和完整 build CLI 尚待开发。
+主题与公共渲染职责、可选 site.address 地址契约见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。地址校验及内容包传递、公共正文渲染与默认主题已实现；静态搜索已接入，完整 build CLI 尚待开发。
 
 ## 构建与部署
 

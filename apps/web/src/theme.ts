@@ -20,6 +20,9 @@ export function defaultPages(bundle: ContentBundle) {
     ...documents.filter((d) => d.kind === "page"),
     ...(site.friends.length ? [{ title: "友链", route: "/friends/" }] : []),
   ];
+  const search = documents.length
+    ? `<details class="site-search"><summary>搜索文章与页面</summary><link href="${e(local("/pagefind/pagefind-component-ui.css"))}" rel="stylesheet"><script src="${e(local("/pagefind/pagefind-component-ui.js"))}" type="module"></script><pagefind-config bundle-path="${e(local("/pagefind/"))}" base-url="/" lang="zh-CN"></pagefind-config><pagefind-input placeholder="搜索公开内容"></pagefind-input><pagefind-summary></pagefind-summary><pagefind-results></pagefind-results><noscript>搜索需要启用 JavaScript；也可以通过首页和导航浏览内容。</noscript></details>`
+    : "";
   const layout = (title: string, route: string, body: string) => {
     const navigation = navItems
       .map(
@@ -27,7 +30,7 @@ export function defaultPages(bundle: ContentBundle) {
           `<a href="${e(local(item.route))}"${local(item.route) === local(route) ? ' aria-current="page"' : ""}>${e(item.title)}</a>`,
       )
       .join("");
-    return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(route === "/" ? site.title : title + " · " + site.title)}</title>${site.address ? `<link rel="canonical" href="${e(site.address.origin + local(route))}">` : ""}<style>:root{color-scheme:${theme.settings.colorMode === "system" ? "light dark" : theme.settings.colorMode};--accent:${theme.settings.accentColor}}${defaultStyles}</style></head><body><a class="skip-link" href="#main-content">跳到正文</a><header class="shell site-header"><a class="brand" href="${e(local("/"))}">${e(site.title)}</a><nav aria-label="主导航">${navigation}</nav></header><main id="main-content" class="shell" tabindex="-1">${body}</main><footer class="shell site-footer"><span>${e(site.title)}</span><span>由 Corkoro 生成</span></footer></body></html>`;
+    return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(route === "/" ? site.title : title + " · " + site.title)}</title>${site.address ? `<link rel="canonical" href="${e(site.address.origin + local(route))}">` : ""}<style>:root{color-scheme:${theme.settings.colorMode === "system" ? "light dark" : theme.settings.colorMode};--accent:${theme.settings.accentColor}}${defaultStyles}</style></head><body><a class="skip-link" href="#main-content">跳到正文</a><header class="shell site-header"><a class="brand" href="${e(local("/"))}">${e(site.title)}</a><nav aria-label="主导航">${navigation}</nav></header><main id="main-content" class="shell" tabindex="-1">${search}${body}</main><footer class="shell site-footer"><span>${e(site.title)}</span><span>由 Corkoro 生成</span></footer></body></html>`;
   };
   const profile = site.profile
     ? `<aside class="profile" aria-label="作者资料">${site.profile.avatar ? `<img class="avatar" src="${e(local("/assets/" + site.profile.avatar))}" alt="${e(site.profile.name)}" width="68" height="68">` : ""}<h2>${e(site.profile.name)}</h2><p>${e(site.profile.bio)}</p>${site.profile.socials.length ? `<div class="socials">${site.profile.socials.map((s) => `<a href="${e(s.url)}">${e(s.label)}</a>`).join("")}</div>` : ""}</aside>`
