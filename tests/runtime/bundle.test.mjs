@@ -328,7 +328,7 @@ test(
     const s = await setup(t),
       open = fs.open;
     const first = path.join(s.vault, "文章/起步.md"),
-      second = path.join(s.vault, "文章/相关阅读.md");
+      second = await fs.realpath(path.join(s.vault, "文章/相关阅读.md"));
     let changed = false;
     fs.open = async (...args) => {
       if (!changed && path.resolve(String(args[0])) === second) {
@@ -514,12 +514,10 @@ test(
     await s.save();
     const before = await inputs(s.vault),
       open = fs.open;
+    const firstSource = await fs.realpath(path.join(s.vault, "文章/起步.md"));
     let replaced = false;
     fs.open = async (...args) => {
-      if (
-        !replaced &&
-        path.resolve(String(args[0])) === path.join(s.vault, "文章/起步.md")
-      ) {
+      if (!replaced && path.resolve(String(args[0])) === firstSource) {
         replaced = true;
         await fs.unlink(alias);
         await fs.symlink(s.vault, alias, "junction");
