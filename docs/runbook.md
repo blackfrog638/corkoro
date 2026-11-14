@@ -16,7 +16,7 @@ pnpm test
 pnpm run verify:model
 ```
 
-build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。已配置 Windows CI，远端首次执行待推送后确认。
+build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。已配置 Windows CI，远端开发分支已验证。
 
 ## 站点地址准备
 
@@ -147,3 +147,5 @@ pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" -
 工作流只有 contents:read 权限，不保留 checkout 凭据，不用 secrets、不部署、不上传产物。PR 代码只在临时托管 runner 上运行，未使用 pull_request_target。固定 Action 来源：[checkout](https://github.com/actions/checkout)、[setup-node](https://github.com/actions/setup-node)、[pnpm/action-setup](https://github.com/pnpm/action-setup)。
 
 2026-11-14 本地实测：冻结锁安装、类型检查、有限模型、四种人工场景通过；运行时代码未变，沿用上一提交全量 50 项通过记录。YAML 解析及格式检查通过。尚未推送，不能将这些结果表述为 GitHub Actions 已成功运行。
+
+2026-11-14 远端验收：[开发分支 CI](https://github.com/blackfrog638/corkoro/actions/runs/43599881122) 全部通过。首次运行发现 Windows 临时路径别名使两项故障注入未触发；测试目标改为 realpath 后通过，未削弱安全断言。
