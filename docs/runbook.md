@@ -1,5 +1,15 @@
 # 开发与运维
 
+## 桌面平台实测范围（2026-11-18）
+
+| 平台与目标卷 | 只读 CLI | 配置、独立内容包和站点指针写入 | 整站构建与预览 |
+| --- | --- | --- | --- |
+| Windows，本地固定 NTFS | 已验证 | 已验证，使用 Windows PowerShell/.NET | 已在 Windows CI 验证 |
+| Linux，本地 ext4 | 待原生 CI 验收 | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后验收 |
+| macOS，本地 APFS | 待原生 CI 验收 | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后按卷模式验收 |
+
+当前 CI 仅配置 Windows。后续记录按具体命令和能力更新，附实际卷类型、执行命令、用例结果及 CI 运行链接。[跨平台实施计划](cross-platform-plan.md)
+
 ## 当前可用能力
 
 2026-11-14 S5 进展：publisher 导出 captureContent(configPath, signal?)，返回只读捕获的公开 bundle、configVersion、outputDirectory、diagnostics；网站 buildSite 首参数可直接接收该 bundle。该入口已接入 build --config <file> [--json]，输出使用配置 output.directory。快照交接及后续单提交设计见 [决策 0012](decisions/0012-build-cli-snapshot-handoff.md)。
@@ -111,7 +121,7 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，搜索及完整 build CLI 已完成，下一步接部署。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题、搜索及完整 build CLI 已完成。部署操作见下文。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
 
