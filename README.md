@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。已实现[公开内容包 v1](docs/content-bundle.md)的库入口、转换与 Windows 原子写出。2026-11-13 已增加最小 Astro 站点构建库（见 runbook）；默认主题及 Pagefind 搜索已实现；完整 build CLI 已实现；本地 preview 已实现；deploy 已支持本地博客分支提交；upload:site 支持将核对过的提交推送到显式指定的博客仓库；status 可查询 GitHub Pages 部署记录；评论接口和 Obsidian 插件尚未实现；已配置 Windows CI（远端已验证），没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
+2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。已实现[公开内容包 v1](docs/content-bundle.md)的库入口、转换与 Windows 原子写出。2026-11-13 已增加最小 Astro 站点构建库（见 runbook）；默认主题及 Pagefind 搜索已实现；完整 build CLI 已实现；本地 preview 已实现；deploy 已支持本地博客分支提交；upload:site 支持将核对过的提交推送到显式指定的博客仓库；status 可查询 GitHub Pages 部署记录；评论数据层已在本地 SQLite 验证，Worker HTTP 接口和 Obsidian 插件尚未实现；已配置 Windows CI（远端已验证），没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
 
 ## 从这里开始
 
@@ -33,7 +33,7 @@
 | `tests/fixtures/vault` | 人工编写的示例笔记，不放真实私人笔记 |
 | `examples/site` | Vault 配置与四种人工场景的使用说明 |
 
-目前已有内容契约、内容包构建库及 CLI 的选择与引用规划代码；apps/web 已有最小生成器，其它 apps 模块仍预留。当前采用根包统一编译源模块和管理依赖，尚不独立发布子包。Node 开发版本固定为 .node-version，依赖与 pnpm 锁文件已加入。
+目前已有内容契约、内容包构建库及 CLI 的选择与引用规划代码；apps/web 已有最小生成器，apps/api 已有评论存储库入口，Obsidian 插件仍预留。当前采用根包统一编译源模块和管理依赖，尚不独立发布子包。Node 开发版本固定为 .node-version，依赖与 pnpm 锁文件已加入。
 
 ## 输入与输出
 

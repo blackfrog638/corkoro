@@ -17,7 +17,8 @@ export const filePath = z
   .string()
   .min(1)
   .refine((s) => !/[\x00-\x1f]/.test(s), "Invalid path");
-export const idSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/);
+import { idSchema } from "./id.js";
+export { idSchema };
 export const slugSchema = z
   .string()
   .min(1)

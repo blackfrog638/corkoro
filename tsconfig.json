@@ -16,6 +16,7 @@
   "include": [
     "packages/*/src/**/*.ts",
     "tools/cli/src/**/*.ts",
+    "apps/api/src/**/*.ts",
     "apps/web/src/**/*.ts"
   ]
 }

@@ -218,3 +218,7 @@ pnpm --silent corkoro status --repo OWNER/BLOG --branch "$branch" --expected $lo
 ```
 
 命令只读查询 GitHub 的 github-pages 环境中最近 20 条部署，按分支名和完整 40 位提交号识别目标。state 为 live、pending、failed、superseded 或 unknown。liveCommit 是这批记录中最近一条当前状态为 success 的提交，无法确认时为 null。该值反映 GitHub 部署记录，CDN 缓存可能稍后刷新。pending 可稍后重查，failed 可查看仓库 Actions 日志，unknown 时核对目标及部署历史。退出 0 表示查询成功，应读取 state 判断是否上线。退出 4 表示网络、权限或响应错误，可在恢复访问后重查。私有仓库可通过 GH_TOKEN 提供具有 Deployments 读取权限的令牌。需要代理的 Node 环境可设置 HTTPS_PROXY 和 NODE_USE_ENV_PROXY=1。
+
+## 本地评论数据层验收
+
+在仓库根运行 `pnpm run build`，再运行 `node --test tests/runtime/comments.test.mjs`。测试在内存 SQLite 上执行 apps/api/migrations/0001_comments.sql，通过 D1 风格的语句适配器验证匿名提交、审核状态隔离、文章隔离、可选邮箱和分页。全量 `pnpm test` 包含此用例。HTTP 路由和云端 D1 的实际运行仍待验收。
