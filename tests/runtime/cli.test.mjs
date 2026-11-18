@@ -47,8 +47,8 @@ async function run(args, cwd = repo) {
   });
   let stdout = "",
     stderr = "";
-  child.stdout.on("data", (b) => (stdout += b));
-  child.stderr.on("data", (b) => (stderr += b));
+  child.stdout.setEncoding("utf8").on("data", (s) => (stdout += s));
+  child.stderr.setEncoding("utf8").on("data", (s) => (stderr += s));
   const timer = setTimeout(() => child.kill(), 20000);
   const [code] = await once(child, "close");
   clearTimeout(timer);
@@ -175,23 +175,105 @@ test("inspection reports hints without selecting content or exposing note text",
   assert.equal(bad.data.complete, false);
 });
 
-test("plan CLI is deterministic across working directories and reports missing configuration", async (t) => {
+test("read-only CLI preserves the Vault and selection across working directories", async (t) => {
   const s = await sandbox(t);
-  const config = path.join(s.vault, "网站/selected.config.json");
-  const c = JSON.parse(await fs.readFile(config, "utf8"));
-  c.output.directory = s.output;
-  await fs.writeFile(config, JSON.stringify(c));
-  const before = await fs.readFile(config);
-  const args = ["plan", "--config", config];
-  const r = await run(args);
-  assert.equal(r.exitCode, 0);
-  assert.equal(r.data.buildable, true);
-  assert.deepEqual(await run(args, os.tmpdir()), r);
-  assert.deepEqual(await fs.readFile(config), before);
+  const config = (name) => path.join(s.vault, "网站", name + ".config.json");
+  for (const name of ["selected", "blocked", "corkoro"]) {
+    const value = JSON.parse(await fs.readFile(config(name), "utf8"));
+    value.output.directory = "../../output";
+    await fs.writeFile(config(name), JSON.stringify(value));
+  }
+  async function inventory() {
+    const entries = {};
+    for (const name of await fs.readdir(s.vault, { recursive: true })) {
+      const file = path.join(s.vault, name);
+      const stat = await fs.lstat(file);
+      entries[name] = stat.isDirectory()
+        ? "directory"
+        : createHash("sha256")
+            .update(await fs.readFile(file))
+            .digest("hex");
+    }
+    return entries;
+  }
+  const before = await inventory();
+  async function read(args, exitCode = 0) {
+    const result = await run(args, s.root);
+    assert.deepEqual(await run(args, os.tmpdir()), result);
+    assert.equal(result.exitCode, exitCode);
+    assert.equal(result.effect, "none");
+    return result;
+  }
+  const selected = ["--config", config("selected")];
+  const scan = await read([
+    "inspect",
+    "--source",
+    s.vault,
+    "--format",
+    "obsidian-markdown",
+  ]);
+  assert.ok(
+    scan.data.inventory.some(
+      (x) => x.source === "文章/标记候选.md" && x.publishHint,
+    ),
+  );
+  const list = await read(["content", "list", ...selected]);
+  const ids = ["fixture-first", "fixture-related"];
+  assert.deepEqual(
+    list.data.entries.map((entry) => entry.id),
+    ids,
+  );
+  const check = await read(["check", ...selected]);
+  assert.equal(check.data.complete, true);
+  assert.equal(check.data.buildable, true);
+  const plan = await read(["plan", ...selected]);
+  assert.deepEqual(
+    plan.data.articles.map((entry) => entry.id),
+    ids,
+  );
+  assert.deepEqual(
+    plan.data.pages.map((p) => [p.id, p.route]),
+    [["page-about", "/about/"]],
+  );
+  assert.deepEqual(
+    plan.data.assets.map((a) => a.path),
+    ["diagram.svg", "avatar.svg"],
+  );
+  assert.equal(plan.data.assets[0].reasons[0].fromId, "fixture-first");
+  assert.equal(plan.data.assets[1].reasons[0].field, "/site/profile/avatar");
+  const empty = await read(["plan", "--config", config("corkoro")]);
+  assert.equal(empty.data.buildable, false);
+  const blocked = await read(["plan", "--config", config("blocked")], 3);
+  assert.equal(blocked.data.buildable, false);
+  assert.deepEqual(
+    blocked.data.blockedReferences.map((r) => r.code),
+    ["UNPUBLISHED_TARGET", "UNPUBLISHED_EMBED", "UNPUBLISHED_EMBED"],
+  );
   const missing = await run(["plan", "--config", path.join(s.root, "missing")]);
   assert.equal(missing.exitCode, 4);
   assert.equal(missing.diagnostics[0].code, "CONFIG_NOT_FOUND");
+  assert.deepEqual(await inventory(), before);
+  await assert.rejects(fs.stat(s.output), { code: "ENOENT" });
 });
+
+test(
+  "unsupported platforms reject config initialization before writing",
+  {
+    skip: process.platform === "win32",
+  },
+  async (t) => {
+    const s = await sandbox(t);
+    const result = await init(s);
+    assert.equal(result.exitCode, 4);
+    assert.equal(result.effect, "none");
+    assert.equal(result.diagnostics[0].code, "TRANSACTION_UNSUPPORTED");
+    await assert.rejects(fs.stat(s.config), { code: "ENOENT" });
+    await assert.rejects(
+      fs.stat(path.join(path.dirname(s.config), ".corkoro-state")),
+      { code: "ENOENT" },
+    );
+  },
+);
 
 test(
   "Windows lifecycle: empty init, stable IDs, idempotence, missing-source remove, profile preservation",

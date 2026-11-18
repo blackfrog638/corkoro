@@ -5,10 +5,10 @@
 | 平台与目标卷 | 只读 CLI | 配置、独立内容包和站点指针写入 | 整站构建与预览 |
 | --- | --- | --- | --- |
 | Windows，本地固定 NTFS | 已验证 | 已验证，使用 Windows PowerShell/.NET | 已在 Windows CI 验证 |
-| Linux，本地 ext4 | 待原生 CI 验收 | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后验收 |
-| macOS，本地 APFS | 待原生 CI 验收 | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后按卷模式验收 |
+| Linux，本地 ext4 为写入目标 | 已在 WSL2 Ubuntu 验证 | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后验收 |
+| macOS，本地 APFS 为写入目标 | 由 macos-15 任务验收，见对应提交的 [CI 记录](https://github.com/blackfrog638/corkoro/actions/workflows/ci.yml) | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后按卷模式验收 |
 
-当前 CI 仅配置 Windows。后续记录按具体命令和能力更新，附实际卷类型、执行命令、用例结果及 CI 运行链接。[跨平台实施计划](cross-platform-plan.md)
+CI 已配置 Windows、Ubuntu 和 macOS 三个平台。Windows 执行完整回归，另两个平台执行只读 CLI、引用规划及事务写入拒绝用例。[跨平台实施计划](cross-platform-plan.md)
 
 ## 当前可用能力
 
@@ -150,7 +150,14 @@ pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" -
 
 ## CI（S6）
 
-`.github/workflows/ci.yml` 在 push、pull_request 和手动触发时运行，使用 windows-2025，避免 Windows 写入测试被平台跳过。Node 读取 .node-version，pnpm 读取 package.json 的 packageManager，Action 固定提交 SHA。任务顺序：冻结锁文件安装、实际 Node 版本核对、typecheck、test（含编译）、verify:model、verify:sites。失败即终止，超时 20 分钟。
+工作流在 push、pull_request 和手动触发时运行。各平台均按锁文件安装依赖，核对实际 Node 版本并运行 typecheck。windows-2025 继续运行 `pnpm test`、`pnpm run verify:model` 和 `pnpm run verify:sites`。ubuntu-24.04 与 macos-15 执行以下命令，测试报告列出按平台跳过的用例。每个任务限时 20 分钟，单个平台失败时其余平台继续执行。
+
+```sh
+pnpm run build
+pnpm exec node --test tests/runtime/cli.test.mjs tests/runtime/planning.test.mjs
+```
+
+2026-11-18 本地验收使用 Node 26.13.0 和 pnpm 11.25.0。Windows 原生全量测试通过 60 项，跳过 1 项非 Windows 事务拒绝用例，有限模型和四种整站场景通过。WSL2 Ubuntu x86_64 在独立 Linux 临时目录完成冻结安装、类型检查与编译，上述两个测试文件通过 14 项，跳过 10 项 Windows 专用用例。
 
 `pnpm run verify:sites` 要求先执行 `pnpm run build`，复制仓库人工 Vault 到系统临时目录，通过真实 CLI 构建 selected/pages-only，确认空配置和未授权引用返回退出 3；核对输入文件摘要及站点指针清单。临时目录保留供排查，路径打印在结果中，不写真实 Vault。
 

@@ -13,12 +13,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  windows:
-    runs-on: windows-2025
+  cli:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-2025
+          - name: Ubuntu read-only CLI
+            os: ubuntu-24.04
+          - name: macOS read-only CLI
+            os: macos-15
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
-    defaults:
-      run:
-        shell: pwsh
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -36,8 +44,17 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
       - name: Runtime tests and compilation
+        if: runner.os == 'Windows'
         run: pnpm test
+      - name: Compile CLI
+        if: runner.os != 'Windows'
+        run: pnpm run build
+      - name: Read-only CLI and planning tests
+        if: runner.os != 'Windows'
+        run: pnpm exec node --test tests/runtime/cli.test.mjs tests/runtime/planning.test.mjs
       - name: Finite state models
+        if: runner.os == 'Windows'
         run: pnpm run verify:model
       - name: Build artificial sites
+        if: runner.os == 'Windows'
         run: pnpm run verify:sites
