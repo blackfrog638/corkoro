@@ -198,3 +198,13 @@ pnpm --silent corkoro deploy --snapshot "$snapshotFile" --repo "$blogRepo" --bra
 ```
 
 成功结果含 stage=local_commit、commit、branch 和 deploymentId。只有实际更新分支时 effect=committed。已是相同内容时返回 none；原请求重试遇到该请求生成的直接后继提交，也会返回 none。提交前分支已变化或 Git 拒绝原子更新时，重新比较再决定。失去响应后先核对目标分支。操作保留快照以外文件及用户工作区/索引。远端上传与 Pages 状态跟踪留待下一阶段。
+
+## 上传已核对的博客提交
+
+先保存 compare:site 的输出为 $review，将本地 deploy 的 JSON 输出解析为 $local。目标仓库已有同名分支，其当前提交应为 $review.commit。Git 凭据使用本机凭据管理器。命令所有位置参数均必填：
+
+```powershell
+pnpm --silent upload:site "$snapshotFile" "$blogRepo" "$branch" "https://github.com/OWNER/BLOG.git" $review.commit $local.data.commit $review.deploymentId
+```
+
+支持显式 GitHub HTTPS 仓库 URL，测试可使用本机裸仓库绝对路径。要求本地提交以核对过的远端提交为唯一父提交，检查快照中所有文件以及该提交的全部改动路径。推送只更新指定分支，旧提交号在 Git 服务端再次校验。成功 JSON 的 stage 为 remote_commit。重复请求发现完全相同的远端提交时返回 changed=false；远端分支已经前进时停止，重新比较后再操作。初次接入先基于目标已有分支做本地部署；不创建远端、不发送标签、不删除旧文件。失败时 stderr 输出诊断；退出 5 表示推送响应丢失且无法查明远端状态，恢复连接后先核对远端提交。Pages 是否已上线仍需独立确认。

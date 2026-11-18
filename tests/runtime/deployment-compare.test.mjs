@@ -131,6 +131,50 @@ test("compare static files to a pinned local branch without touching the checkou
       assert.equal(git("show", "publish:文章.html"), "article");
       assert.equal(git("show", "publish:CNAME"), "example.org");
       assert.equal(git("show", "publish:old.html"), "history");
+      const remote = path.join(root, "remote.git");
+      git("init", "--bare", "-q", remote);
+      git("push", remote, commit + ":refs/heads/publish");
+      const upload = (base) =>
+        spawnSync(
+          process.execPath,
+          [
+            fileURLToPath(
+              new URL("../../tools/deployment/upload.mjs", import.meta.url),
+            ),
+            input,
+            repo,
+            "publish",
+            remote,
+            base,
+            published.data.commit,
+            data.deploymentId,
+          ],
+          { encoding: "utf8", windowsHide: true },
+        );
+      const first = upload(commit);
+      assert.equal(first.status, 0, first.stderr);
+      assert.equal(JSON.parse(first.stdout).changed, true);
+      assert.equal(JSON.parse(upload(commit).stdout).changed, false);
+      assert.equal(
+        JSON.parse(upload(published.data.commit).stdout).changed,
+        false,
+      );
+      const newer = git(
+        "commit-tree",
+        git("rev-parse", "publish^{tree}"),
+        "-p",
+        published.data.commit,
+        "-m",
+        "another writer",
+      );
+      git("push", remote, newer + ":refs/heads/publish");
+      const refused = upload(commit);
+      assert.equal(refused.status, 4, refused.stderr);
+      assert.equal(JSON.parse(refused.stderr).code, "REMOTE_BRANCH_CHANGED");
+      assert.equal(
+        git("ls-remote", remote, "refs/heads/publish").split("\t")[0],
+        newer,
+      );
       assert.equal(deploy("publish").effect, "none");
       assert.equal(git("rev-parse", "publish"), published.data.commit);
       assert.equal(
