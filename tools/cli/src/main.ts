@@ -1,3 +1,4 @@
+import { status } from "./status.js";
 import { deploy } from "./deploy.js";
 import { startPreview } from "../../../apps/web/src/preview.js";
 import { failure, cancelled } from "../../../packages/publisher/src/errors.js";
@@ -31,6 +32,7 @@ function parse(): Request | "help" | "version" {
           "plan",
           "build",
           "preview",
+          "status",
           "deploy",
         ].includes(args[0]!)) ||
       (args.length === 3 &&
@@ -55,6 +57,7 @@ function parse(): Request | "help" | "version" {
     );
   command = known.data;
   const allowed: Record<string, string[]> = {
+    status: ["repo", "branch", "expected", "json"],
     deploy: ["snapshot", "repo", "branch", "expected", "deployment-id", "json"],
     inspect: ["source", "format", "json"],
     init: ["source", "config", "out-dir", "format", "json"],
@@ -85,17 +88,19 @@ function parse(): Request | "help" | "version" {
     } else positions.push(token);
   }
   const required =
-    command === "deploy"
-      ? ["snapshot", "repo", "branch", "expected", "deployment-id"]
-      : command === "preview"
-        ? ["out-dir"]
-        : command === "inspect"
-          ? ["source", "format"]
-          : command === "init"
-            ? ["source", "format", "config", "out-dir"]
-            : command === "content add"
-              ? ["config", "slug"]
-              : ["config"];
+    command === "status"
+      ? ["repo", "branch", "expected"]
+      : command === "deploy"
+        ? ["snapshot", "repo", "branch", "expected", "deployment-id"]
+        : command === "preview"
+          ? ["out-dir"]
+          : command === "inspect"
+            ? ["source", "format"]
+            : command === "init"
+              ? ["source", "format", "config", "out-dir"]
+              : command === "content add"
+                ? ["config", "slug"]
+                : ["config"];
   if (
     required.some((k) => !values[k]) ||
     positions.length !==
@@ -134,7 +139,7 @@ try {
   const request = parse();
   if (request === "help")
     process.stdout.write(
-      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nPlanned: status, comments\n",
+      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nstatus --repo <owner/name> --branch <branch> --expected <commit> [--json]\nPlanned: comments\n",
     );
   else if (request === "version") process.stdout.write("0.0.0\n");
   else if (request.command === "preview") {
@@ -165,11 +170,13 @@ try {
     );
   } else {
     const result =
-      request.command === "deploy"
-        ? await deploy(request, abort.signal)
-        : request.command === "build"
-          ? await executeBuild(request.config!, abort.signal)
-          : await execute(request, abort.signal);
+      request.command === "status"
+        ? await status(request, abort.signal)
+        : request.command === "deploy"
+          ? await deploy(request, abort.signal)
+          : request.command === "build"
+            ? await executeBuild(request.config!, abort.signal)
+            : await execute(request, abort.signal);
     process.exitCode = result.exitCode;
     process.stdout.write(
       json

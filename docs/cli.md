@@ -1,6 +1,6 @@
 # CLI 契约 v1
 
-状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 已实现；deploy 已支持本地分支提交；status/comments 仍返回不支持；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
+状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 已实现；deploy 已支持本地分支提交；status 支持按分支与提交查询 GitHub Pages，comments 仍返回不支持；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
 
 ## 命令结构
 
@@ -38,7 +38,7 @@ corkoro content <action> [arguments] [options]
 | 命令 | 职责 | 详细参数 |
 | --- | --- | --- |
 
-| `status` | 查询指定部署的状态 | 部署阶段确定 |
+| `status` | 查询指定部署的状态 | `--repo OWNER/BLOG --branch <branch> --expected <完整提交号>` |
 | `comments list/approve/reject/export` | 有认证的评论管理操作 | 评论阶段确定 |
 
 不在已发布的 help 中将预留命令显示为可用能力；可以单独列为 planned。可执行文件的发布与安装方式尚未确定，文档示例不代表系统已安装全局 `corkoro`。
@@ -138,4 +138,4 @@ corkoro plan --config "E:/notes/陌生 Vault/网站/corkoro.config.json" --json
 
 ## 提交网站快照到本地分支
 
-`deploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]`。两个版本参数使用 compare:site 报告中的 commit 和 deploymentId。成功结果的 stage 为 local_commit，commit 为目标分支提交号。远端推送及上线查询尚未实现。前置条件和重试示例见 [runbook](runbook.md)。
+`deploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]`。两个版本参数使用 compare:site 报告中的 commit 和 deploymentId。成功结果的 stage 为 local_commit，commit 为目标分支提交号。远端推送使用 upload:site，上线查询使用 status。前置条件和重试示例见 [runbook](runbook.md)。

@@ -115,12 +115,30 @@ test("argument errors and planned commands do not touch nonexistent config", asy
     ["inspect", "--source", ".", "--format", "guess"],
     ["content", "add", "a.md", "--config", "missing"],
     ["check", "--config", "missing", "extra"],
+    [
+      "status",
+      "--repo",
+      "owner/..",
+      "--branch",
+      "gh-pages",
+      "--expected",
+      "a".repeat(40),
+    ],
+    [
+      "status",
+      "--repo",
+      "owner/blog",
+      "--branch",
+      "gh-pages",
+      "--expected",
+      "abc",
+    ],
   ]) {
     const r = await run(args);
     assert.equal(r.exitCode, 2);
     assert.equal(r.effect, "none");
   }
-  const r = await run(["status", "--config", "missing"]);
+  const r = await run(["comments", "--config", "missing"]);
   assert.equal(r.diagnostics[0].code, "UNSUPPORTED_COMMAND");
 });
 

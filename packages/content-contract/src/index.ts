@@ -134,6 +134,7 @@ export const configSchema = z
 export type Config = z.infer<typeof configSchema>;
 export type Entry = z.infer<typeof entrySchema>;
 export const commandSchema = z.enum([
+  "status",
   "deploy",
   "preview",
   "build",
@@ -328,6 +329,20 @@ export const envelopeSchema = z
     }
     let schema: z.ZodType;
     switch (v.command) {
+      case "status":
+        schema = z.strictObject({
+          repository: z.string(),
+          branch: z.string(),
+          expected: z.string().regex(/^[a-f0-9]{40}$/),
+          liveCommit: z
+            .string()
+            .regex(/^[a-f0-9]{40}$/)
+            .nullable(),
+          state: z.enum(["live", "pending", "failed", "superseded", "unknown"]),
+        });
+        if (v.effect !== "none" || v.configVersion !== null)
+          c.addIssue({ code: "custom", message: "Invalid status result" });
+        break;
       case "deploy":
         schema = z.strictObject({
           deploymentId: z.string().regex(/^sha256:[a-f0-9]{64}$/),
@@ -420,6 +435,11 @@ export function parseJson(bytes: Uint8Array): unknown {
   return JSON.parse(input);
 }
 
+const githubRepository = z
+  .string()
+  .regex(/^[a-z0-9-]+\/(?!\.{1,2}$)[a-z0-9_.-]+$/i);
+const githubCommit = z.string().regex(/^[a-f0-9]{40}$/);
+
 export const requestSchema = z
   .strictObject({
     command: commandSchema,
@@ -444,20 +464,31 @@ export const requestSchema = z
     target: z.string().min(1).optional(),
   })
   .superRefine((r, ctx) => {
+    if (
+      r.command === "status" &&
+      (!githubRepository.safeParse(r.repository).success ||
+        !githubCommit.safeParse(r.expected).success)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Invalid GitHub repository or commit",
+      });
     const required =
-      r.command === "deploy"
-        ? ["snapshot", "repository", "branch", "expected", "deploymentId"]
-        : r.command === "preview"
-          ? ["outDir"]
-          : r.command === "inspect"
-            ? ["source", "format"]
-            : r.command === "init"
-              ? ["source", "format", "config", "outDir"]
-              : r.command === "content add"
-                ? ["config", "slug", "target"]
-                : r.command === "content remove"
-                  ? ["config", "target"]
-                  : ["config"];
+      r.command === "status"
+        ? ["repository", "branch", "expected"]
+        : r.command === "deploy"
+          ? ["snapshot", "repository", "branch", "expected", "deploymentId"]
+          : r.command === "preview"
+            ? ["outDir"]
+            : r.command === "inspect"
+              ? ["source", "format"]
+              : r.command === "init"
+                ? ["source", "format", "config", "outDir"]
+                : r.command === "content add"
+                  ? ["config", "slug", "target"]
+                  : r.command === "content remove"
+                    ? ["config", "target"]
+                    : ["config"];
     const allowed = new Set([
       ...required,
       ...(r.command === "preview" ? ["port"] : []),

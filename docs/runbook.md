@@ -4,7 +4,7 @@
 
 2026-11-14 S5 进展：publisher 导出 captureContent(configPath, signal?)，返回只读捕获的公开 bundle、configVersion、outputDirectory、diagnostics；网站 buildSite 首参数可直接接收该 bundle。该入口已接入 build --config <file> [--json]，输出使用配置 output.directory。快照交接及后续单提交设计见 [决策 0012](decisions/0012-build-cli-snapshot-handoff.md)。
 
-2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，默认主题与搜索已实现，插件仍待开发。
+2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，默认主题与搜索已实现，插件仍待开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
@@ -208,3 +208,13 @@ pnpm --silent upload:site "$snapshotFile" "$blogRepo" "$branch" "https://github.
 ```
 
 支持显式 GitHub HTTPS 仓库 URL，测试可使用本机裸仓库绝对路径。要求本地提交以核对过的远端提交为唯一父提交，检查快照中所有文件以及该提交的全部改动路径。推送只更新指定分支，旧提交号在 Git 服务端再次校验。成功 JSON 的 stage 为 remote_commit。重复请求发现完全相同的远端提交时返回 changed=false；远端分支已经前进时停止，重新比较后再操作。初次接入先基于目标已有分支做本地部署；不创建远端、不发送标签、不删除旧文件。失败时 stderr 输出诊断；退出 5 表示推送响应丢失且无法查明远端状态，恢复连接后先核对远端提交。Pages 是否已上线仍需独立确认。
+
+## 查询 GitHub Pages 发布状态
+
+在本地 build、preview 确认页面后，按上文 compare:site、deploy、upload:site 顺序发布。上传成功后查询同一提交，可重复执行：
+
+```powershell
+pnpm --silent corkoro status --repo OWNER/BLOG --branch "$branch" --expected $local.data.commit --json
+```
+
+命令只读查询 GitHub 的 github-pages 环境中最近 20 条部署，按分支名和完整 40 位提交号识别目标。state 为 live、pending、failed、superseded 或 unknown。liveCommit 是这批记录中最近一条当前状态为 success 的提交，无法确认时为 null。该值反映 GitHub 部署记录，CDN 缓存可能稍后刷新。pending 可稍后重查，failed 可查看仓库 Actions 日志，unknown 时核对目标及部署历史。退出 0 表示查询成功，应读取 state 判断是否上线。退出 4 表示网络、权限或响应错误，可在恢复访问后重查。私有仓库可通过 GH_TOKEN 提供具有 Deployments 读取权限的令牌。需要代理的 Node 环境可设置 HTTPS_PROXY 和 NODE_USE_ENV_PROXY=1。

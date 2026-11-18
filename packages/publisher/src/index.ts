@@ -63,6 +63,7 @@ export async function execute(
       throw new Failure("INVALID_ARGUMENT", 2);
     cancelled(signal);
     if (
+      req.command === "status" ||
       req.command === "deploy" ||
       req.command === "build" ||
       req.command === "preview"
