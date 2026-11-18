@@ -111,7 +111,7 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，搜索及完整 build CLI 已完成，下一步接部署。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题、搜索及完整 build CLI 已完成。部署操作见下文。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
 
@@ -167,7 +167,7 @@ build 在本地生成静态网站。用户可自行选择静态托管服务；�
 
 `pnpm --silent package:site <构建输出根目录>` 将当前站点捕获为完整 JSON 快照并写到 stdout。先执行 pnpm run build 编译工具；目录相对调用工作目录，不读取 Vault、不重新构建、不写入或上传。参数错误退出 2，捕获失败返回非零且 stderr 给出诊断；失败不输出可用包。此开发工具不是 corkoro deploy 命令。
 
-库入口为 apps/web 的 captureDeployment；读取移交快照使用 content-contract 的 parseDeployment 复核摘要。快照不是直接供 Pages 服务的网页，后续适配器需将 files 写入产物仓库。详细边界见 [部署快照决策](decisions/0014-deployment-snapshot.md)。本地分支提交见下文，远端推送和状态查询仍待实现。
+库入口为 apps/web 的 captureDeployment；读取移交快照使用 content-contract 的 parseDeployment 复核摘要。快照不是直接供 Pages 服务的网页，deploy 将核对过的快照文件提交到本地博客分支。详细边界见 [部署快照决策](decisions/0014-deployment-snapshot.md)。下文给出了本地提交、upload:site 推送及 status 查询的操作示例。
 
 ## 核对博客仓库的发布差异
 

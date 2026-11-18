@@ -33,15 +33,13 @@ corkoro content <action> [arguments] [options]
 
 提交前失败不改变配置语义；锁文件、临时文件等工具事务元数据不属于用户内容，不能扩大写入权限。提交后进程崩溃或响应丢失时结果可能未知，先重新 list/读取配置，再幂等重试；不能把所有非零退出或无响应都视为“未写入”。init 并发创建必须只有一个提交成功，重试遇到 CONFIG_EXISTS 不覆盖。
 
-## 后续命令：名称与职责预留
+## 部署状态查询
 
-| 命令 | 职责 | 详细参数 |
-| --- | --- | --- |
+`status --repo OWNER/BLOG --branch <branch> --expected <完整提交号> [--json]` 只读查询 GitHub Pages，核对指定分支与提交的部署状态。
 
-| `status` | 查询指定部署的状态 | `--repo OWNER/BLOG --branch <branch> --expected <完整提交号>` |
-| `comments list/approve/reject/export` | 有认证的评论管理操作 | 评论阶段确定 |
+## 预留的评论管理命令
 
-不在已发布的 help 中将预留命令显示为可用能力；可以单独列为 planned。可执行文件的发布与安装方式尚未确定，文档示例不代表系统已安装全局 `corkoro`。
+`comments list/approve/reject/export` 用于规划中的评论管理。当前帮助将 comments 列为 planned，调用返回 `UNSUPPORTED_COMMAND`。
 
 ## 参数与路径
 

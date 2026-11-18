@@ -2,7 +2,7 @@
 
 ## 先读取
 
-先读 `README.md`，再按任务读取 `docs/architecture.md`、`docs/roadmap.md` 和 `docs/runbook.md`。CLI 和内容选择任务还需读取 `docs/cli.md`、`docs/publication.md`。命令校验、并发及提交边界还需读取 `docs/state-machine.md`、`docs/cli-protocol.md` 和 `docs/config-transactions.md`。重要取舍以 `docs/decisions/` 为准，新的细化决策优先于旧约定。当前已实现本地选择 CLI、引用检查与只读 plan，以及公开内容包构建库（docs/content-bundle.md）；另有 Astro 站点构建库、默认主题、静态搜索与完整 build CLI（决策 0011、0012）；CI 已通过远端验证，preview/deploy 和其余应用模块仍待实现；以 runbook 的实测能力为准，不要把计划中的能力描述为已经实现。
+先读 `README.md`，再按任务读取 `docs/architecture.md`、`docs/roadmap.md` 和 `docs/runbook.md`。CLI 和内容选择任务还需读取 `docs/cli.md`、`docs/publication.md`。命令校验、并发及提交边界还需读取 `docs/state-machine.md`、`docs/cli-protocol.md` 和 `docs/config-transactions.md`。重要取舍以 `docs/decisions/` 为准，新的细化决策优先于旧约定。可用命令与参数见 [CLI 契约](docs/cli.md)，操作步骤和实测范围见 [runbook](docs/runbook.md)。
 
 ## 修改位置与边界
 
