@@ -1,6 +1,6 @@
 # CLI 契约 v1
 
-状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 已实现；preview/deploy/status/comments 仍返回不支持。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
+状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；Windows 本地 NTFS 可写，其它平台写入拒绝。build 已实现；deploy 已支持本地分支提交；status/comments 仍返回不支持；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
 
 ## 命令结构
 
@@ -23,7 +23,7 @@ corkoro content <action> [arguments] [options]
 | `check --config <file> [--json]` | 校验配置、选择及已实现的内容规则 | 无 |
 | `plan --config <file> [--json]` | 输出文章、页面、资料、友链、资源和逐项理由 | 无 |
 
-`format` 为 `markdown` 或 `obsidian-markdown`，不因发现 `.obsidian` 就擅自启用某个解析器。`inspect` 不需要已有配置；它报告候选路径、数量、已知语法类别及公开属性线索，不输出正文、完整 frontmatter 或 Obsidian 配置文件内容。无法读取的文件和未检查内容必须报告，不能声称完整扫描。所有本地命令不访问网络。
+`format` 为 `markdown` 或 `obsidian-markdown`，不因发现 `.obsidian` 就擅自启用某个解析器。`inspect` 不需要已有配置；它报告候选路径、数量、已知语法类别及公开属性线索，不输出正文、完整 frontmatter 或 Obsidian 配置文件内容。无法读取的文件和未检查内容必须报告，不能声称完整扫描。构建和选择命令不访问网络；preview 仅监听本机 HTTP。
 
 `init` 在 --config 指定位置创建一个 JSON 配置：publication.entries 和 assetRoots 为空，site.title 为“我的博客”、profile 为 null、pages/friends 为空，theme 为 default（colorMode: system、accentColor: #3b82f6）。--out-dir 必填，输出必须与源目录和资源目录隔离。配置可放在 Vault 内已有的非空目录；仅拒绝已存在的目标配置文件，不要求清空父目录。只创建配置、必要父目录及工具事务元数据，不生成关于页或头像，不覆盖已有文件。附件根目录由用户随后配置，不按目录名自动授权。成功不代表内容校验通过；失败清理只处理本次创建且身份未变的临时文件，允许保留必要父目录；不删除用户文件。
 
@@ -38,8 +38,6 @@ corkoro content <action> [arguments] [options]
 | 命令 | 职责 | 详细参数 |
 | --- | --- | --- |
 
-| `preview` | 预览已经生成的站点；默认仅绑定本机 | 渲染阶段确定 |
-| `deploy` | 显式发布指定构建产物，跟踪真实部署 | 部署阶段确定 |
 | `status` | 查询指定部署的状态 | 部署阶段确定 |
 | `comments list/approve/reject/export` | 有认证的评论管理操作 | 评论阶段确定 |
 
@@ -105,7 +103,7 @@ corkoro content <action> [arguments] [options]
 | 0 | 命令成功，可有提示 | 空清单的 init/list/check/plan |
 | 1 | 非预期内部错误 | `INTERNAL_ERROR` |
 | 2 | 参数、配置或协议版本错误 | `INVALID_ARGUMENT`、`INVALID_CONFIG`、`UNSUPPORTED_VERSION`、`UNSUPPORTED_COMMAND` |
-| 3 | 选择或内容规则不满足 | `MISSING_SOURCE`、`PATH_OUT_OF_SCOPE`、`DUPLICATE_ID`、`UNPUBLISHED_TARGET`、`UNSUPPORTED_SYNTAX`；未来 build 的 `EMPTY_SELECTION` |
+| 3 | 选择或内容规则不满足 | `MISSING_SOURCE`、`PATH_OUT_OF_SCOPE`、`DUPLICATE_ID`、`UNPUBLISHED_TARGET`、`UNSUPPORTED_SYNTAX`；build 的 `EMPTY_SELECTION` |
 | 4 | 文件系统操作、锁占用或写入冲突 | `IO_ERROR`、`CONFIG_EXISTS`、`CONFIG_CHANGED`、`CONFIG_BUSY` 等 |
 | 5 | 无法确定提交结果 | `COMMIT_UNKNOWN`，effect=unknown |
 | 130 | 提交前取消 | `CANCELLED`，effect=none |
@@ -129,3 +127,15 @@ corkoro plan --config "E:/notes/陌生 Vault/网站/corkoro.config.json" --json
 ## 完整构建（2026-11-14）
 
 `corkoro build --config <file> [--json]` 捕获并校验当前配置及内容，生成网站和搜索；输出使用配置 output.directory。首版不提供输出覆盖参数。配置路径相对调用目录，配置内部路径相对配置目录。输入不修改，不上传或部署。结果 data 含 buildId、outputDirectory、siteDirectory、retainedDirectory；生成失败保留旧网站，目录残留不等于提交。effect=unknown 时 data/configVersion 为 null，退出 5；使用 readSite(outputDirectory) 核对当前记录后再决定重试。部署只取 siteDirectory。详见决策 0012。
+
+## 本地预览（2026-11-14）
+
+`pnpm corkoro preview --out-dir <构建输出根目录> [--port 4321] [--json]`
+
+先运行 build，再将配置 output.directory 的实际目录传给 preview。--out-dir 相对当前工作目录；不读取 Vault 或当前配置，不重新构建。只绑定 127.0.0.1，端口 0 自动分配空闲端口。启动时验证 site.current.json 和全部文件摘要，捕获同一版本的公开字节；后续修改文件或重建不会改变运行中的预览，需停止后重新启动。只服务摘要清单中的文件，不列目录，不暴露项目源码、旧版本或输出根。子路径使用构建内 content.bundle.json 的 site.address.base。
+
+启动成功时输出地址；--json 输出一个标准结果对象，data 为 { url, buildId }，effect=none、configVersion=null。进程持续服务，Ctrl+C 或 SIGTERM 停止并正常退出；启动前取消退出 130，端口占用等启动错误返回非零。成功对象仅表示已开始监听，不表示部署或进程已结束。首版将站点装入内存，适合本地博客预览，不提供热更新或生产托管。
+
+## 提交网站快照到本地分支
+
+`deploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]`。两个版本参数使用 compare:site 报告中的 commit 和 deploymentId。成功结果的 stage 为 local_commit，commit 为目标分支提交号。远端推送及上线查询尚未实现。前置条件和重试示例见 [runbook](runbook.md)。

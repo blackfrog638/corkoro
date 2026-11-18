@@ -29,10 +29,16 @@ export { buildContentBundle, readContentBundle } from "./bundle.js";
 export { captureContent } from "./capture.js";
 export type Request = {
   command: Command;
+  snapshot?: string;
+  repository?: string;
+  branch?: string;
+  expected?: string;
+  deploymentId?: string;
   config?: string;
   source?: string;
   format?: "markdown" | "obsidian-markdown";
   outDir?: string;
+  port?: number;
   slug?: string;
   id?: string;
   target?: string;
@@ -56,7 +62,11 @@ export async function execute(
     if (!requestSchema.safeParse(req).success)
       throw new Failure("INVALID_ARGUMENT", 2);
     cancelled(signal);
-    if (req.command === "build")
+    if (
+      req.command === "deploy" ||
+      req.command === "build" ||
+      req.command === "preview"
+    )
       throw new Failure(
         "UNSUPPORTED_COMMAND",
         2,

@@ -129,3 +129,7 @@ type PlanData = {
 ## build 扩展（2026-11-14）
 
 build 使用同一 envelope；data 为 { buildId, outputDirectory, siteDirectory, retainedDirectory }，后两项可为 null。成功必须 effect=committed 且 siteDirectory 非空。捕获失败 data=null；生成失败可保留路径信息但不返回有效站点目录。提交未知沿用 data/configVersion=null。守卫为参数校验 → 当前配置捕获/隔离/内容校验 → 站点锁/旧版本完整性 → 新版本构建 → 单指针提交。退出码沿用现有类别。有限七命令模型未扩展到 build，不将运行时测试称为形式化证明。
+
+## preview 扩展（2026-11-14）
+
+参数与长运行就绪语义见 [CLI 契约](cli.md) 和 [预览决策](decisions/0013-local-preview.md)。使用统一 envelope，启动成功 data={url, buildId}、effect=none、configVersion=null；启动失败 data=null。七命令有限模型不覆盖 HTTP 服务生命周期。

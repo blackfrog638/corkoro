@@ -1,3 +1,6 @@
+import { deploy } from "./deploy.js";
+import { startPreview } from "../../../apps/web/src/preview.js";
+import { failure, cancelled } from "../../../packages/publisher/src/errors.js";
 import { executeBuild } from "./build.js";
 import {
   execute,
@@ -20,9 +23,16 @@ function parse(): Request | "help" | "version" {
     args.at(-1) === "--help" &&
     (args.length === 1 ||
       (args.length === 2 &&
-        ["inspect", "init", "content", "check", "plan", "build"].includes(
-          args[0]!,
-        )) ||
+        [
+          "inspect",
+          "init",
+          "content",
+          "check",
+          "plan",
+          "build",
+          "preview",
+          "deploy",
+        ].includes(args[0]!)) ||
       (args.length === 3 &&
         args[0] === "content" &&
         ["list", "add", "remove"].includes(args[1]!)))
@@ -45,6 +55,7 @@ function parse(): Request | "help" | "version" {
     );
   command = known.data;
   const allowed: Record<string, string[]> = {
+    deploy: ["snapshot", "repo", "branch", "expected", "deployment-id", "json"],
     inspect: ["source", "format", "json"],
     init: ["source", "config", "out-dir", "format", "json"],
     "content list": ["config", "json"],
@@ -53,6 +64,7 @@ function parse(): Request | "help" | "version" {
     check: ["config", "json"],
     plan: ["config", "json"],
     build: ["config", "json"],
+    preview: ["out-dir", "port", "json"],
   };
   const values: Record<string, string> = {};
   const positions: string[] = [];
@@ -73,13 +85,17 @@ function parse(): Request | "help" | "version" {
     } else positions.push(token);
   }
   const required =
-    command === "inspect"
-      ? ["source", "format"]
-      : command === "init"
-        ? ["source", "format", "config", "out-dir"]
-        : command === "content add"
-          ? ["config", "slug"]
-          : ["config"];
+    command === "deploy"
+      ? ["snapshot", "repo", "branch", "expected", "deployment-id"]
+      : command === "preview"
+        ? ["out-dir"]
+        : command === "inspect"
+          ? ["source", "format"]
+          : command === "init"
+            ? ["source", "format", "config", "out-dir"]
+            : command === "content add"
+              ? ["config", "slug"]
+              : ["config"];
   if (
     required.some((k) => !values[k]) ||
     positions.length !==
@@ -92,8 +108,19 @@ function parse(): Request | "help" | "version" {
     !["markdown", "obsidian-markdown"].includes(values.format)
   )
     throw new Failure("INVALID_ARGUMENT", 2, "Unsupported source format");
+  if (
+    values.port !== undefined &&
+    (!/^\d+$/.test(values.port) || Number(values.port) > 65535)
+  )
+    throw new Failure("INVALID_ARGUMENT", 2, "Invalid preview port");
   return {
     command,
+    snapshot: values.snapshot,
+    repository: values.repo,
+    branch: values.branch,
+    expected: values.expected,
+    deploymentId: values["deployment-id"],
+    port: values.port === undefined ? undefined : Number(values.port),
     config: values.config,
     source: values.source,
     format: values.format as Request["format"],
@@ -107,14 +134,42 @@ try {
   const request = parse();
   if (request === "help")
     process.stdout.write(
-      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\nPlanned: preview, deploy, status, comments\n",
+      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nPlanned: status, comments\n",
     );
   else if (request === "version") process.stdout.write("0.0.0\n");
-  else {
+  else if (request.command === "preview") {
+    cancelled(abort.signal);
+    const preview = await startPreview(request.outDir!, request.port);
+    const close = () => {
+      void preview.close();
+    };
+    abort.signal.addEventListener("abort", close, { once: true });
+    if (abort.signal.aborted) {
+      await preview.close();
+      cancelled(abort.signal);
+    }
+    const result = {
+      schemaVersion: 1,
+      command: "preview",
+      ok: true,
+      exitCode: 0,
+      effect: "none",
+      configVersion: null,
+      data: { url: preview.url, buildId: preview.buildId },
+      diagnostics: [],
+    };
+    process.stdout.write(
+      json
+        ? JSON.stringify(result) + "\n"
+        : `Preview: ${preview.url} (Ctrl+C to stop)\n`,
+    );
+  } else {
     const result =
-      request.command === "build"
-        ? await executeBuild(request.config!, abort.signal)
-        : await execute(request, abort.signal);
+      request.command === "deploy"
+        ? await deploy(request, abort.signal)
+        : request.command === "build"
+          ? await executeBuild(request.config!, abort.signal)
+          : await execute(request, abort.signal);
     process.exitCode = result.exitCode;
     process.stdout.write(
       json
@@ -123,7 +178,7 @@ try {
     );
   }
 } catch (e) {
-  const err = e instanceof Failure ? e : new Failure("INTERNAL_ERROR", 1);
+  const err = failure(e);
   process.exitCode = err.exitCode;
   const result: Envelope = {
     schemaVersion: 1,

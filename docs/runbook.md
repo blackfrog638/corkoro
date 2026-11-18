@@ -4,7 +4,7 @@
 
 2026-11-14 S5 进展：publisher 导出 captureContent(configPath, signal?)，返回只读捕获的公开 bundle、configVersion、outputDirectory、diagnostics；网站 buildSite 首参数可直接接收该 bundle。该入口已接入 build --config <file> [--json]，输出使用配置 output.directory。快照交接及后续单提交设计见 [决策 0012](decisions/0012-build-cli-snapshot-handoff.md)。
 
-2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。preview/deploy/status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，默认主题与搜索已实现，插件仍待开发。
+2026-11-12：可运行 inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。status/comments 尚未实现，返回不支持。内容包 v1 已通过库入口实现转换与原子写出；2026-11-13 已增加最小 Astro 站点构建库，默认主题与搜索已实现，插件仍待开发。
 
 开发运行版本固定 Node 26.13.0（.node-version），pnpm 11.25.0。package.json 的 Node 范围兼容 pnpm 自身携带的 24.22.1；本轮业务测试运行于 Node 26.13.0。运行 pnpm exec node --version 可核对真正执行脚本的 Node。依赖精确固定并提交 pnpm-lock.yaml；无须真实 Vault 或云凭据。
 
@@ -50,7 +50,7 @@ init 创建空配置和必要事务元数据，不创建输出站点。用户填
 
 ## 公开内容包库入口
 
-先执行 `pnpm run build`。从仓库根可用以下 PowerShell 示例构建人工样例，输出到样例配置指定的 `.local/example-sites/selected/content.bundle.json`（Git 已忽略 .local）。此处直接调用库，`corkoro build` 仍未实现。
+先执行 `pnpm run build`。从仓库根可用以下 PowerShell 示例构建人工样例，输出到样例配置指定的 `.local/example-sites/selected/content.bundle.json`（Git 已忽略 .local）。此处展示独立内容包库；完整网站请使用下文的 `corkoro build`。
 
 ```powershell
 @'
@@ -85,11 +85,11 @@ process.exitCode = result.exitCode;
 '@ | pnpm exec node --input-type=module
 ```
 
-网站库只读公开包，不需要 Vault 或 Obsidian。当前默认主题提供首页文章摘要、独立作者区、文章与普通页面阅读布局及友链卡片，支持配置配色及 base；完整 build CLI 尚未交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
+网站库只读公开包，不需要 Vault 或 Obsidian。当前默认主题提供首页文章摘要、独立作者区、文章与普通页面阅读布局及友链卡片，支持配置配色及 base；完整 build CLI 已交付。Astro 7.4.11 已固定在锁文件，构建复用工具依赖，不另行联网安装。
 
-输出根保留随机版本目录与 site.current.json。`readSite` 验证活动静态文件摘要并返回 siteDirectory / projectDirectory。只服务或上传 siteDirectory，不要公开整个输出根，其中包含旧版本。可用本地静态服务器查看该目录；配置了 base 时服务器须把该目录挂载到相应前缀。预览不是本轮新增 CLI 命令。
+输出根保留随机版本目录与 site.current.json。`readSite` 验证活动静态文件摘要并返回 siteDirectory / projectDirectory。只服务或上传 siteDirectory，不要公开整个输出根，其中包含旧版本。可用本地静态服务器查看该目录；配置了 base 时服务器须把该目录挂载到相应前缀。也可使用下文的 preview 命令。
 
-失败保留上次站点，失败目录和旧版本均不自动删除。result.effect 表示当前记录是否提交，retainedDirectory 表示本次分配的目录；unknown 或调用方失去响应时，重新 readSite 核对。坏记录、被手工修改的站点不会自动修复。库仅检查输出与传入包的隔离，使用者仍应选择 Vault 外的输出位置；未来配置级 build 会统一校验所有输入。完整格式、所有权及恢复边界见 [决策 0011](decisions/0011-generated-site-publication.md)。
+失败保留上次站点，失败目录和旧版本均不自动删除。result.effect 表示当前记录是否提交，retainedDirectory 表示本次分配的目录；unknown 或调用方失去响应时，重新 readSite 核对。坏记录、被手工修改的站点不会自动修复。库仅检查输出与传入包的隔离，使用者仍应选择 Vault 外的输出位置；配置级 build 已统一校验所有输入。完整格式、所有权及恢复边界见 [决策 0011](decisions/0011-generated-site-publication.md)。
 
 S2 基础布局曾用人工样例在 1280px 和 390px 宽度检查首页、文章及导航，在移动宽度检查关于页和友链；图片可加载且无横向溢出。运行时 web.test.mjs 覆盖真实 Astro 构建、正文/属性转义、中文与 base 链接、Vault 离线、锁竞争、构建失败、取消、进程中断、非法产物和文件摘要验证。
 
@@ -111,7 +111,7 @@ Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，下一步接搜索，随后实现完整 build CLI。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题体验已完成，搜索及完整 build CLI 已完成，下一步接部署。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
 
@@ -146,6 +146,55 @@ pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" -
 
 工作流只有 contents:read 权限，不保留 checkout 凭据，不用 secrets、不部署、不上传产物。PR 代码只在临时托管 runner 上运行，未使用 pull_request_target。固定 Action 来源：[checkout](https://github.com/actions/checkout)、[setup-node](https://github.com/actions/setup-node)、[pnpm/action-setup](https://github.com/pnpm/action-setup)。
 
-2026-11-14 本地实测：冻结锁安装、类型检查、有限模型、四种人工场景通过；运行时代码未变，沿用上一提交全量 50 项通过记录。YAML 解析及格式检查通过。尚未推送，不能将这些结果表述为 GitHub Actions 已成功运行。
+2026-11-14 本地实测：冻结锁安装、类型检查、有限模型、四种人工场景通过；运行时代码未变，沿用上一提交全量 50 项通过记录。YAML 解析及格式检查通过。此为推送前本地记录；远端结果见下一条验收记录。
 
 2026-11-14 远端验收：[开发分支 CI](https://github.com/blackfrog638/corkoro/actions/runs/43599881122) 全部通过。首次运行发现 Windows 临时路径别名使两项故障注入未触发；测试目标改为 realpath 后通过，未削弱安全断言。
+
+## 本地预览（2026-11-14）
+
+`pnpm corkoro preview --out-dir <构建输出根目录> [--port 4321] [--json]`
+
+先运行 build，再将配置 output.directory 的实际目录传给 preview。--out-dir 相对当前工作目录；不读取 Vault 或当前配置，不重新构建。只绑定 127.0.0.1，端口 0 自动分配空闲端口。启动时验证 site.current.json 和全部文件摘要，捕获同一版本的公开字节；后续修改文件或重建不会改变运行中的预览，需停止后重新启动。只服务摘要清单中的文件，不列目录，不暴露项目源码、旧版本或输出根。子路径使用构建内 content.bundle.json 的 site.address.base。
+
+启动成功时输出地址；--json 输出一个标准结果对象，data 为 { url, buildId }，effect=none、configVersion=null。进程持续服务，Ctrl+C 或 SIGTERM 停止并正常退出；启动前取消退出 130，端口占用等启动错误返回非零。成功对象仅表示已开始监听，不表示部署或进程已结束。首版将站点装入内存，适合本地博客预览，不提供热更新或生产托管。
+
+2026-11-14 preview 本地验收：51 项运行时测试、类型检查、有限模型检查通过。verify:sites 的四个人工场景通过，成功场景另通过 HTTP 核对每个真实 Astro/Pagefind 文件的摘要及脚本、SVG 类型。未重新做浏览器布局验收（本次无页面布局修改），未执行远端发布。
+
+
+## 部署交接（2026-11-15）
+
+build 在本地生成静态网站。用户可自行选择静态托管服务；使用 GitHub Pages 时，由用户为该博客选择产物仓库和分支。
+
+`pnpm --silent package:site <构建输出根目录>` 将当前站点捕获为完整 JSON 快照并写到 stdout。先执行 pnpm run build 编译工具；目录相对调用工作目录，不读取 Vault、不重新构建、不写入或上传。参数错误退出 2，捕获失败返回非零且 stderr 给出诊断；失败不输出可用包。此开发工具不是 corkoro deploy 命令。
+
+库入口为 apps/web 的 captureDeployment；读取移交快照使用 content-contract 的 parseDeployment 复核摘要。快照不是直接供 Pages 服务的网页，后续适配器需将 files 写入产物仓库。详细边界见 [部署快照决策](decisions/0014-deployment-snapshot.md)。本地分支提交见下文，远端推送和状态查询仍待实现。
+
+## 核对博客仓库的发布差异
+
+先编译工具并完成网站 build。下面的 PowerShell 示例从工具仓库根运行。将输出根目录、目标博客仓库的本地副本和本地分支替换为实际值。示例将快照保存为 UTF-8（Windows PowerShell 5 的默认重定向编码为 UTF-16）。
+```powershell
+$payload = pnpm --silent package:site "E:/generated/my-blog"
+if ($LASTEXITCODE -ne 0) { throw "未生成快照" }
+$snapshotFile = Join-Path ([IO.Path]::GetTempPath()) ("corkoro-" + [guid]::NewGuid() + ".json")
+[IO.File]::WriteAllText($snapshotFile, $payload, [Text.UTF8Encoding]::new($false))
+pnpm --silent compare:site "$snapshotFile" "E:/sites/my-blog" main
+```
+
+compare:site 校验快照后读取指定本地分支的 Git 树。JSON 报告给出 commit、deploymentId，以及 add、update、unchanged、preserve、conflict 路径列表。preserve 表示目标已有而快照未提供的文件，包括已撤回但仍在仓库中的旧文章，实际撤回需要另行处理。比较以仓库根为发布目录，使用 Git 路径大小写和提交中的原始字节。工作区改动、未跟踪文件和远端分支更新不参与比较。目标分支需已有提交。成功退出 0，参数错误 2，有冲突 3，快照或 Git 读取失败 1。操作不写仓库、不推送，也不表示 Pages 已上线。
+
+## 将核对后的快照提交到本地博客分支
+
+目标是已配置 Git 提交者姓名、邮箱的可信本地仓库，分支须有初始提交。选择未被任何工作区检出的分支，例如预先创建的 publish 分支；也可使用裸仓库。执行期间不要在其他进程检出目标分支。路径使用仓库根目录。先按上文保存快照，再运行：
+
+```powershell
+$blogRepo = "E:/sites/my-blog"
+$branch = "publish"
+$diffJson = pnpm --silent compare:site "$snapshotFile" "$blogRepo" "$branch"
+if ($LASTEXITCODE -ne 0) { throw "无法提交，请检查冲突或诊断" }
+$review = $diffJson | ConvertFrom-Json
+$review | Format-List
+# 核对改动后使用同一份报告提交
+pnpm --silent corkoro deploy --snapshot "$snapshotFile" --repo "$blogRepo" --branch "$branch" --expected $review.commit --deployment-id $review.deploymentId --json
+```
+
+成功结果含 stage=local_commit、commit、branch 和 deploymentId。只有实际更新分支时 effect=committed。已是相同内容时返回 none；原请求重试遇到该请求生成的直接后继提交，也会返回 none。提交前分支已变化或 Git 拒绝原子更新时，重新比较再决定。失去响应后先核对目标分支。操作保留快照以外文件及用户工作区/索引。远端上传与 Pages 状态跟踪留待下一阶段。

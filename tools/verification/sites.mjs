@@ -1,3 +1,5 @@
+import { captureDeployment } from "../../dist/apps/web/src/deployment.js";
+import { parseDeployment } from "../../dist/packages/content-contract/src/deployment.js";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -7,6 +9,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { envelopeSchema } from "../../dist/packages/content-contract/src/index.js";
+import { startPreview } from "../../dist/apps/web/src/preview.js";
 import { readSite } from "../../dist/apps/web/src/index.js";
 
 assert.equal(
@@ -71,6 +74,55 @@ for (const [name, expected] of [
     assert.equal(site.buildId, result.data.buildId);
     assert.ok(site.files.some((f) => f.path === "content.bundle.json"));
     assert.ok(site.files.some((f) => f.path === "pagefind/pagefind.js"));
+    const snapshot = await captureDeployment(output);
+    assert.equal(snapshot.buildId, site.buildId);
+    const packaged = await promisify(execFile)(
+      process.execPath,
+      [
+        fileURLToPath(new URL("../deployment/capture.mjs", import.meta.url)),
+        output,
+      ],
+      { cwd: root, windowsHide: true, maxBuffer: 64 * 1024 * 1024 },
+    );
+    assert.deepEqual(parseDeployment(Buffer.from(packaged.stdout)), snapshot);
+    assert.equal(packaged.stderr, "");
+    assert.deepEqual(
+      snapshot.files.map(({ path, hash }) => ({ path, hash })),
+      site.files,
+    );
+    assert.deepEqual(
+      parseDeployment(Buffer.from(JSON.stringify(snapshot))),
+      snapshot,
+    );
+    assert.deepEqual(await captureDeployment(output), snapshot);
+    assert.ok(
+      !JSON.stringify(snapshot).includes(root),
+      "Snapshot leaked local paths",
+    );
+    await assert.rejects(captureDeployment(output, AbortSignal.abort()), {
+      code: "CANCELLED",
+    });
+    const preview = await startPreview(output, 0);
+    try {
+      for (const file of site.files) {
+        const response = await fetch(
+          preview.url + file.path.split("/").map(encodeURIComponent).join("/"),
+        );
+        assert.equal(response.status, 200, file.path);
+        const digest =
+          "sha256:" +
+          createHash("sha256")
+            .update(Buffer.from(await response.arrayBuffer()))
+            .digest("hex");
+        assert.equal(digest, file.hash, file.path);
+        if (file.path.endsWith(".js"))
+          assert.match(response.headers.get("content-type"), /javascript/);
+        if (file.path.endsWith(".svg"))
+          assert.equal(response.headers.get("content-type"), "image/svg+xml");
+      }
+    } finally {
+      await preview.close();
+    }
   } else {
     assert.equal(result.effect, "none");
     await assert.rejects(fs.stat(path.join(output, "site.current.json")), {
