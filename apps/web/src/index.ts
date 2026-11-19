@@ -17,7 +17,7 @@ import {
 import type { ContentBundle } from "../../../packages/content-contract/src/bundle.js";
 import {
   canonical,
-  inside,
+  containsPath,
   readStable,
   hash,
 } from "../../../packages/publisher/src/files.js";
@@ -168,7 +168,8 @@ export async function buildSite(
         ? await canonical(path.resolve(bundlePath))
         : null;
     const output = await canonical(path.resolve(outputDirectory));
-    if (input && inside(output, input)) throw new Failure("OUTPUT_OVERLAP", 3);
+    if (input && (await containsPath(output, input)))
+      throw new Failure("OUTPUT_OVERLAP", 3);
     const bundle = captured ?? (await readContentBundle(input!));
     let pages;
     try {

@@ -21,13 +21,29 @@ jobs:
         include:
           - name: windows
             os: windows-2025
-          - name: Ubuntu read-only CLI
+          - name: Ubuntu CLI
             os: ubuntu-24.04
-          - name: macOS read-only CLI
+          - name: macOS CLI
             os: macos-15
+            filesystem: APFS
+          - name: macOS case-sensitive CLI
+            os: macos-15
+            filesystem: APFSX
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
+      - name: Mount local APFS test volume
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          hdiutil create -size 3g -type SPARSE -fs "${{ matrix.filesystem }}" -volname CorkoroTests "$RUNNER_TEMP/corkoro.sparseimage"
+          hdiutil attach -nobrowse "$RUNNER_TEMP/corkoro.sparseimage"
+          mkdir /Volumes/CorkoroTests/tmp
+          echo 'TMPDIR=/Volumes/CorkoroTests/tmp' >> "$GITHUB_ENV"
+          diskutil info /Volumes/CorkoroTests
+      - name: Identify Linux test filesystem
+        if: runner.os == 'Linux'
+        run: findmnt -T /tmp
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
@@ -44,17 +60,8 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
       - name: Runtime tests and compilation
-        if: runner.os == 'Windows'
         run: pnpm test
-      - name: Compile CLI
-        if: runner.os != 'Windows'
-        run: pnpm run build
-      - name: Read-only CLI and planning tests
-        if: runner.os != 'Windows'
-        run: pnpm exec node --test tests/runtime/cli.test.mjs tests/runtime/planning.test.mjs
       - name: Finite state models
-        if: runner.os == 'Windows'
         run: pnpm run verify:model
       - name: Build artificial sites
-        if: runner.os == 'Windows'
         run: pnpm run verify:sites

@@ -5,10 +5,12 @@
 | 平台与目标卷 | 只读 CLI | 配置、独立内容包和站点指针写入 | 整站构建与预览 |
 | --- | --- | --- | --- |
 | Windows，本地固定 NTFS | 已验证 | 已验证，使用 Windows PowerShell/.NET | 已在 Windows CI 验证 |
-| Linux，本地 ext4 为写入目标 | 已在 WSL2 Ubuntu 验证 | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后验收 |
-| macOS，本地 APFS 为写入目标 | 由 macos-15 任务验收，见对应提交的 [CI 记录](https://github.com/blackfrog638/corkoro/actions/workflows/ci.yml) | 当前事务入口返回 `TRANSACTION_UNSUPPORTED` | 待写入适配后按卷模式验收 |
+| Linux，本地 ext4 | 运行全量验收 | 系统 Python 3、findmnt、flock 与 renameat2 | 运行四种整站场景 |
+| macOS，本地 APFS | 运行全量验收 | 系统 Python 3、diskutil、flock 与 renameatx_np | 在 APFS 和大小写敏感 APFS 卷运行整站验收 |
 
-CI 已配置 Windows、Ubuntu 和 macOS 三个平台。Windows 执行完整回归，另两个平台执行只读 CLI、引用规划及事务写入拒绝用例。[跨平台实施计划](cross-platform-plan.md)
+三平台执行 `pnpm test`、`pnpm run verify:model` 和 `pnpm run verify:sites`。macOS CI 为两种大小写模式分别挂载临时卷。请从仓库根先运行 `pnpm install --frozen-lockfile`。验收只使用临时目录中的人工 Vault。[CI 运行记录](https://github.com/blackfrog638/corkoro/actions/workflows/ci.yml)
+
+POSIX 写入依赖 /usr/bin/python3 及上述系统工具。配置、临时副本和锁载体按用户私有权限创建，原子替换产生的新文件也使用私有权限。Linux 拒绝开启目录 casefold 的 ext4。网络共享、其它文件系统和缺少所需原语的环境不属于支持范围。持锁进程终止后可重新调用；提交响应未知时先重读配置或站点指针。
 
 ## 当前可用能力
 
@@ -150,12 +152,7 @@ pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" -
 
 ## CI（S6）
 
-工作流在 push、pull_request 和手动触发时运行。各平台均按锁文件安装依赖，核对实际 Node 版本并运行 typecheck。windows-2025 继续运行 `pnpm test`、`pnpm run verify:model` 和 `pnpm run verify:sites`。ubuntu-24.04 与 macos-15 执行以下命令，测试报告列出按平台跳过的用例。每个任务限时 20 分钟，单个平台失败时其余平台继续执行。
-
-```sh
-pnpm run build
-pnpm exec node --test tests/runtime/cli.test.mjs tests/runtime/planning.test.mjs
-```
+工作流在 push、pull_request 和手动触发时运行。每个任务按锁文件安装、核对 Node、类型检查并执行完整回归，限时 20 分钟。
 
 2026-11-18 本地验收使用 Node 26.13.0 和 pnpm 11.25.0。Windows 原生全量测试通过 60 项，跳过 1 项非 Windows 事务拒绝用例，有限模型和四种整站场景通过。WSL2 Ubuntu x86_64 在独立 Linux 临时目录完成冻结安装、类型检查与编译，上述两个测试文件通过 14 项，跳过 10 项 Windows 专用用例。
 

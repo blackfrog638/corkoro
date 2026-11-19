@@ -80,7 +80,6 @@ test("public content rendering escapes data and applies base to local targets on
 
 test(
   "Astro builds an isolated public site, resolves base links and keeps the last site on failure",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const web = await import("../../dist/apps/web/src/index.js");
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "corkoro-web-"));

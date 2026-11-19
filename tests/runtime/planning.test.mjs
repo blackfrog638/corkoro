@@ -182,7 +182,6 @@ test("shared assets retain every authorizing entry and unsupported references ne
 });
 test(
   "asset-root escapes through a junction are blocked",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await fixture(t);
     const outside = path.join(s.root, "private-assets");
@@ -270,7 +269,6 @@ test("diagnostics follow protocol source order independently of selection order"
 
 test(
   "pages resolve against canonical source roots even when configuration uses a junction alias",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await fixture(t, "pages-only");
     const alias = path.join(s.root, "source-alias");

@@ -12,11 +12,6 @@ import { envelopeSchema } from "../../dist/packages/content-contract/src/index.j
 import { startPreview } from "../../dist/apps/web/src/preview.js";
 import { readSite } from "../../dist/apps/web/src/index.js";
 
-assert.equal(
-  process.platform,
-  "win32",
-  "Site verification requires Windows NTFS",
-);
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "corkoro-sites-"));
 const vault = path.join(root, "vault");
 await fs.cp(new URL("../../tests/fixtures/vault", import.meta.url), vault, {
@@ -51,6 +46,8 @@ for (const [name, expected] of [
   const config = JSON.parse(await fs.readFile(configPath, "utf8"));
   const output = path.join(root, name);
   config.output.directory = output;
+  if (name === "pages-only")
+    config.site.address = { origin: "https://example.org", base: "/blog/" };
   await fs.writeFile(configPath, JSON.stringify(config));
   const before = await inventory(vault);
   let stdout,

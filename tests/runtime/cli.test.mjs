@@ -93,6 +93,37 @@ async function notes(vault) {
   return values;
 }
 
+test("POSIX transaction slots follow native case and Unicode lookup", {
+  skip: !["darwin", "linux"].includes(process.platform),
+}, async (t) => {
+  const s = await sandbox(t);
+  const name = "Café.json";
+  const target = path.join(s.root, name);
+  await fs.writeFile(target, "{}");
+  const aliases = ["café.json", name.normalize("NFD")];
+  const same = await Promise.all(aliases.map(async (alias) => {
+    try {
+      return (await fs.stat(path.join(s.root, alias))).ino === (await fs.stat(target)).ino;
+    } catch (error) {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    }
+  }));
+  await fs.unlink(target); // Concurrent init must work before a target inode exists.
+  const tx = await openTransaction(target);
+  try {
+    for (const [index, alias] of aliases.entries()) {
+      const other = openTransaction(path.join(s.root, alias));
+      if (same[index]) await assert.rejects(other, { code: "CONFIG_BUSY" });
+      else await (await other).close();
+    }
+    await tx.commit(Buffer.from("{}"), null);
+    assert.equal((await fs.stat(target)).mode & 0o077, 0);
+  } finally {
+    await tx.close();
+  }
+});
+
 test("strict runtime schema rejects duplicates, unknown fields and page/article identity collisions", async () => {
   assert.throws(() => parseJson(Buffer.from('{"x":1,"\\u0078":2}')));
   assert.throws(() => parseJson(Buffer.from('{"x":1,}')));
@@ -259,7 +290,7 @@ test("read-only CLI preserves the Vault and selection across working directories
 test(
   "unsupported platforms reject config initialization before writing",
   {
-    skip: process.platform === "win32",
+    skip: ["win32", "linux", "darwin"].includes(process.platform),
   },
   async (t) => {
     const s = await sandbox(t);
@@ -276,8 +307,7 @@ test(
 );
 
 test(
-  "Windows lifecycle: empty init, stable IDs, idempotence, missing-source remove, profile preservation",
-  { skip: process.platform !== "win32" },
+  "Configuration lifecycle: empty init, stable IDs, idempotence, missing-source remove, profile preservation",
   async (t) => {
     const s = await sandbox(t),
       before = await notes(s.vault);
@@ -338,7 +368,6 @@ test(
 
 test(
   "empty and site-only check distinguish false from ready, output overlap is rejected",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     assert.equal((await init(s)).exitCode, 0);
@@ -364,7 +393,6 @@ test(
 
 test(
   "source aliases, reserved routes and unsafe state fail without config modification",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     await init(s);
@@ -431,7 +459,6 @@ test(
 
 test(
   "real process lock contention and owner termination release the stable lock",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     await init(s);
@@ -476,7 +503,6 @@ test(
 
 test(
   "configuration conflict, precommit cancellation and absent-only creation preserve state",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     await init(s);
@@ -514,7 +540,6 @@ test(
 
 test(
   "simultaneous initializers never overwrite each other",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     const tx = await openTransaction(s.config);
@@ -539,7 +564,6 @@ test(
 
 test(
   "lost response after a real commit can be retried without changing identity",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     await init(s);
@@ -578,7 +602,6 @@ test(
 
 test(
   "junction escape and config disguised as Markdown are blocked by path checks",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await sandbox(t);
     await init(s);

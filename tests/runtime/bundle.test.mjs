@@ -133,7 +133,6 @@ async function inputs(dir) {
 
 test(
   "bundle contains only public normalized content and rebuilds identically",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t),
       before = await inputs(s.vault);
@@ -188,7 +187,6 @@ test(
 
 test(
   "zero-article bundles support pages, profile or friends independently",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     s.c.publication.entries.forEach((e) => (e.publish = false));
@@ -219,7 +217,6 @@ test(
 
 test(
   "conversion preserves CommonMark and wiki labels while stripping source metadata",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await fs.writeFile(
@@ -250,7 +247,6 @@ test(
 
 test(
   "withdrawal replaces the bundle without old documents or unreferenced assets",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await s.build();
@@ -274,7 +270,6 @@ test(
 
 test(
   "blocked or empty input cannot damage the previous bundle; renamed sources retain identity",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await s.build();
@@ -304,7 +299,6 @@ test(
 
 test(
   "unowned targets and hardlinks are not overwritten; output overlap is refused",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await fs.mkdir(s.out);
@@ -323,7 +317,6 @@ test(
 
 test(
   "conversion uses captured bytes even when an already-read source changes",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t),
       open = fs.open;
@@ -352,7 +345,6 @@ test(
 
 test(
   "output writers serialize and a lost response can be reconciled",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await s.build();
@@ -386,7 +378,6 @@ test(
 
 test(
   "bundle reader rejects tampering and unsupported versions",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await s.build();
@@ -403,7 +394,6 @@ test(
 
 test(
   "process interruption after staging leaves the old bundle and never replays the orphan",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await s.build();
@@ -448,7 +438,6 @@ test(
 
 test(
   "precommit cancellation preserves the bundle and does not claim a commit",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await s.build();
@@ -504,7 +493,6 @@ test(
 
 test(
   "replacing an output junction after capture cannot redirect writes into the Vault",
-  { skip: process.platform !== "win32" },
   async (t) => {
     const s = await setup(t);
     await fs.mkdir(s.out);

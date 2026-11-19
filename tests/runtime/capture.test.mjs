@@ -10,7 +10,6 @@ import { captureContent } from "../../dist/packages/publisher/src/index.js";
 import { buildSite, readSite } from "../../dist/apps/web/src/index.js";
 test(
   "capture stays read-only and site renders the captured snapshot after Vault changes",
-  { skip: process.platform !== "win32" },
   async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "corkoro-capture-"));
     const vault = path.join(root, "vault");

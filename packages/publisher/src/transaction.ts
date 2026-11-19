@@ -21,7 +21,7 @@ async function safeFile(p: string, allowMissing = false) {
 export async function openTransaction(input: string, signal?: AbortSignal) {
   cancelled(signal);
   if (
-    process.platform !== "win32" ||
+    !["win32", "linux", "darwin"].includes(process.platform) ||
     !path.isAbsolute(input) ||
     input.startsWith("\\\\")
   )
@@ -32,19 +32,29 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
     parent = path.dirname(target);
   if (target.startsWith("\\\\"))
     throw new Failure("TRANSACTION_UNSUPPORTED", 4);
+  const windows = process.platform === "win32";
   const helper = fileURLToPath(
-    new URL("../native/windows-transaction.ps1", import.meta.url),
+    new URL(
+      windows
+        ? "../native/windows-transaction.ps1"
+        : "../native/posix-transaction.py",
+      import.meta.url,
+    ),
   );
-  const executable = path.join(
-    process.env.SystemRoot ?? "C:\\Windows",
-    "System32",
-    "WindowsPowerShell",
-    "v1.0",
-    "powershell.exe",
-  );
+  const executable = windows
+    ? path.join(
+        process.env.SystemRoot ?? "C:\\Windows",
+        "System32",
+        "WindowsPowerShell",
+        "v1.0",
+        "powershell.exe",
+      )
+    : "/usr/bin/python3";
   const child = spawn(
     executable,
-    ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", helper],
+    windows
+      ? ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", helper]
+      : ["-I", helper],
     { stdio: ["pipe", "pipe", "pipe"], windowsHide: true, shell: false },
   );
   let spawnError: Error | undefined;
@@ -116,7 +126,7 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
     stateDir = path.join(parent, ".corkoro-state");
     let created = false;
     try {
-      await fs.mkdir(stateDir);
+      await fs.mkdir(stateDir, { mode: 0o700 });
       created = true;
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
@@ -143,11 +153,17 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
       JSON.stringify({ format: "corkoro-transactions", version: 1 })
     )
       throw new Failure("UNSAFE_TRANSACTION_STATE", 4);
-    const key = createHash("sha256").update(target.toUpperCase()).digest("hex");
-    const lock = path.join(stateDir, key + ".lock");
-    await safeFile(lock, true);
     cancelled(signal);
-    send({ lock });
+    if (windows) {
+      const key = createHash("sha256")
+        .update(target.toUpperCase())
+        .digest("hex");
+      const lock = path.join(stateDir, key + ".lock");
+      await safeFile(lock, true);
+      send({ lock });
+    } else {
+      send({ action: "lock" });
+    }
     await receive();
     cancelled(signal);
     await safeFile(target, true);
@@ -224,7 +240,7 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
         await safeFile(target, true);
         await verifyTargetIdentity();
         temp = path.join(stateDir, randomUUID() + ".tmp");
-        const f = await fs.open(temp, "wx");
+        const f = await fs.open(temp, "wx", 0o600);
         try {
           await f.writeFile(bytes);
           await f.sync();

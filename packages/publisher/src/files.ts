@@ -17,6 +17,25 @@ export const inside = (root: string, target: string) => {
     (!r.startsWith(`..${path.sep}`) && r !== ".." && !path.isAbsolute(r))
   );
 };
+// Native aliases on APFS can refer to the same directory with different spelling.
+export async function containsPath(root: string, target: string) {
+  if (inside(root, target)) return true;
+  async function identity(p: string) {
+    try {
+      const s = await fs.stat(p, { bigint: true });
+      return `${s.dev}:${s.ino}`;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  }
+  const ancestor = await identity(root);
+  if (!ancestor) return false;
+  for (let p = target; ; p = path.dirname(p)) {
+    if ((await identity(p)) === ancestor) return true;
+    if (path.dirname(p) === p) return false;
+  }
+}
 export const forbidden = (p: string) =>
   p.split(/[\/\\]/).some((x) => excluded.has(x.toLowerCase()));
 export async function canonical(p: string): Promise<string> {
@@ -131,11 +150,13 @@ export async function validatePaths(
     }),
   );
   const output = await canonical(path.resolve(base, c.output.directory));
-  if (
-    [root, ...assets].some((r) => inside(r, output) || inside(output, r)) ||
-    inside(output, await canonical(configPath))
-  )
-    throw new Failure("PATH_OUT_OF_SCOPE", 3, "Output overlaps inputs");
+  for (const input of [root, ...assets, await canonical(configPath)]) {
+    if (
+      (await containsPath(input, output)) ||
+      (await containsPath(output, input))
+    )
+      throw new Failure("PATH_OUT_OF_SCOPE", 3, "Output overlaps inputs");
+  }
   let configIdentity = "";
   try {
     const st = await fs.stat(configPath, { bigint: true });
