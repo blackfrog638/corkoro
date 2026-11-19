@@ -1,6 +1,6 @@
 # 桌面 CLI 跨平台实施计划
 
-2026-11-18 排期。当前最高开发优先级，首个交付项是三平台只读 CLI 基线。共用 CLI 用例和 CI 矩阵已实现，Linux、macOS 写入后端已接入全量回归，验收结果以对应提交的 CI 为准。开发顺序见[路线图](roadmap.md)，实测范围见[运行手册](runbook.md)，适配边界见 [ADR 0015](decisions/0015-cross-platform-cli.md)。
+2026-11-18 排期，2026-11-19 完成三平台首批本地卷验收。首个交付项是三平台只读 CLI 基线。共用 CLI 用例和 CI 矩阵已实现，Linux、macOS 写入后端已接入全量回归，验收结果以对应提交的 CI 为准。开发顺序见[路线图](roadmap.md)，实测范围见[运行手册](runbook.md)，适配边界见 [ADR 0015](decisions/0015-cross-platform-cli.md)。
 
 ## 用户需求与完成条件
 

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**当前开发优先事项是 Windows、Linux 和 macOS 的本地 CLI。** 先建立三平台只读验收，再依次验证 Linux 本地 ext4 和 macOS 本地 APFS 的写入、构建与预览。写入后端面向 Windows 本地固定 NTFS、Linux 本地 ext4 和 macOS 本地 APFS，环境依赖及验收见[运行手册](docs/runbook.md)。[开发路线图](docs/roadmap.md) · [跨平台实施计划](docs/cross-platform-plan.md)
+**桌面 CLI 已通过三平台本地构建与预览验收。** 支持 Windows 本地固定 NTFS、Linux 本地 ext4 和 macOS 本地 APFS（大小写敏感和不敏感）。系统依赖、命令和适用范围见[运行手册](docs/runbook.md)。
 
 2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。已实现[公开内容包 v1](docs/content-bundle.md)的库入口、转换与 Windows 原子写出。2026-11-13 已增加最小 Astro 站点构建库（见 runbook）；默认主题及 Pagefind 搜索已实现；完整 build CLI 已实现；本地 preview 已实现；deploy 已支持本地博客分支提交；upload:site 支持将核对过的提交推送到显式指定的博客仓库；status 可查询 GitHub Pages 部署记录；评论数据层已在本地 SQLite 验证，Worker HTTP 接口和 Obsidian 插件尚未实现；已配置 Windows CI（远端已验证），没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
 

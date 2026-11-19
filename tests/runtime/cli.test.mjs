@@ -142,6 +142,36 @@ test("POSIX detects replacement of the locked parent before commit", {
   }
 });
 
+test("an unsupported Linux tmpfs is rejected before creating transaction metadata", {
+  skip: process.platform !== "linux",
+}, async (t) => {
+  const dir = await fs.mkdtemp("/dev/shm/corkoro-fstype-");
+  t.after(() => fs.rmdir(dir));
+  await assert.rejects(openTransaction(path.join(dir, "config.json")), {
+    code: "TRANSACTION_UNSUPPORTED",
+  });
+  assert.deepEqual(await fs.readdir(dir), []);
+});
+
+test("output isolation follows native directory aliases on APFS", {
+  skip: process.platform !== "darwin",
+}, async (t) => {
+  const s = await sandbox(t);
+  const alias = path.join(s.root, "中文 VAULT");
+  const config = path.join(s.vault, "网站/selected.config.json");
+  const value = JSON.parse(await fs.readFile(config, "utf8"));
+  value.output.directory = path.join(alias, "output");
+  await fs.writeFile(config, JSON.stringify(value));
+  const aliasesVault = await fs.stat(alias).then(() => true, (error) => {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  });
+  const result = await run(["check", "--config", config]);
+  assert.equal(result.exitCode, aliasesVault ? 3 : 0);
+  if (aliasesVault)
+    assert.ok(result.diagnostics.some((entry) => entry.code === "PATH_OUT_OF_SCOPE"));
+});
+
 test("strict runtime schema rejects duplicates, unknown fields and page/article identity collisions", async () => {
   assert.throws(() => parseJson(Buffer.from('{"x":1,"\\u0078":2}')));
   assert.throws(() => parseJson(Buffer.from('{"x":1,}')));

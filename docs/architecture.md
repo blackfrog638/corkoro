@@ -42,7 +42,7 @@ Obsidian / agent / 终端
 
 ## 路径与写入边界
 
-配置、独立内容包和站点指针共用 publisher 的事务入口。扩展桌面平台时，由后端适配目标卷的锁和原子提交，上层沿用同一套发布选择、捕获和站点生成规则。已验证的写入后端为 Windows 本地固定 NTFS，Linux 和 macOS 后端按卷验收。[跨平台事务决策](decisions/0015-cross-platform-cli.md)
+配置、独立内容包和站点指针共用 publisher 的事务入口。扩展桌面平台时，由后端适配目标卷的锁和原子提交，上层沿用同一套发布选择、捕获和站点生成规则。已验证 Windows 本地固定 NTFS、Linux 本地 ext4 与 macOS 本地 APFS（两种大小写模式）。[跨平台事务决策](decisions/0015-cross-platform-cli.md)
 
 配置可以位于 Vault 内，推荐 `网站/corkoro.config.json`，无需放进 `.obsidian`。配置字段的文件路径相对配置文件目录；文章 entry.source 相对 source.root；Markdown 正文的相对资源路径按正文文件目录解析。
 

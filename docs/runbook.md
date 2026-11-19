@@ -1,6 +1,6 @@
 # 开发与运维
 
-## 桌面平台实测范围（2026-11-18）
+## 桌面平台实测范围（2026-11-19）
 
 | 平台与目标卷 | 只读 CLI | 配置、独立内容包和站点指针写入 | 整站构建与预览 |
 | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ S2 基础布局曾用人工样例在 1280px 和 390px 宽度检查首页、文�
 
 ## Windows 写入与恢复
 
-本轮实际验证 Windows + 本地固定 NTFS 卷 + Windows PowerShell/.NET。辅助进程以 windowsHide、参数数组启动；结构化 stdin 传路径/内容信息，不拼 shell。稳定空锁文件由 FileShare.None 互斥持有；更新通过 File.Replace，首次创建用同卷 File.Move。其它平台、UNC 或不支持卷返回 TRANSACTION_UNSUPPORTED。PowerShell 被环境策略禁用时不绕过策略。
+本轮实际验证 Windows + 本地固定 NTFS 卷 + Windows PowerShell/.NET。辅助进程以 windowsHide、参数数组启动；结构化 stdin 传路径/内容信息，不拼 shell。稳定空锁文件由 FileShare.None 互斥持有；更新通过 File.Replace，首次创建用同卷 File.Move。Windows UNC 或不支持卷返回 TRANSACTION_UNSUPPORTED。PowerShell 被环境策略禁用时不绕过策略。
 
 手工编辑器/同步软件不得与命令同时写同一配置。锁忙立即返回 CONFIG_BUSY，不自动重试；不要删除 .corkoro-state 锁载体。进程退出后 OS 释放锁，可重用遗留载体。事务目录被扫描和发布规则排除；旧临时文件不自动重放，给 CLEANUP_PENDING，需人工确认后清理。
 
@@ -119,7 +119,7 @@ S2 基础布局曾用人工样例在 1280px 和 390px 宽度检查首页、文�
 
 bundle.test.mjs 另验证公开正文树、内容摘要与引用闭合、零文章站点、确定性重建、部分撤回、只读输入、校验与转换共享捕获字节、输出锁竞争、失去响应后的重读/幂等重试、暂存后进程退出、提交前取消、硬链接拒绝、父目录持锁行为及输出 junction 被替换后仍绑定原目标。生成内容包不代表网站已通过渲染或 UI 验收。
 
-Windows 写入测试在其它平台标为跳过，不能将这些平台的绿色结果当作写入认证。正文、资源的哈希验证与抽象模型检查分别报告。
+三平台执行共用写入测试，并按操作系统验证持锁目录改名行为。正文、资源的哈希验证与抽象模型检查分别报告。
 
 ## 远端与后续阶段
 
@@ -146,13 +146,15 @@ pnpm run build
 pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" --json
 ```
 
-成功结果 data.siteDirectory 是唯一应服务或部署的目录，其中 content.bundle.json 是同版本公开内容包，不包含原始私有配置。site.current.json 的摘要清单同时保护内容包、HTML 和搜索文件。不要公开输出根。旧版本与失败目录保留；退出 5 或失去响应后用网站库 readSite 核对。构建首版只支持 Windows 本地 NTFS，不自动安装依赖或访问远端。
+成功结果 data.siteDirectory 是唯一应服务或部署的目录，其中 content.bundle.json 是同版本公开内容包，不包含原始私有配置。site.current.json 的摘要清单同时保护内容包、HTML 和搜索文件。不要公开输出根。旧版本与失败目录保留；退出 5 或失去响应后用网站库 readSite 核对。构建支持本页列出的本地卷，使用已安装的工具依赖。
 
 2026-11-14 S5 验证：全量 50 项运行时测试通过。真实 CLI 在两个不同 cwd 使用同一绝对配置构建，核对 configVersion、buildId 与生成内容包；站点失败/取消/竞争及旧版本保持回归通过。
 
 ## CI（S6）
 
 工作流在 push、pull_request 和手动触发时运行。每个任务按锁文件安装、核对 Node、类型检查并执行完整回归，限时 20 分钟。
+
+2026-11-19 三平台真实事务、构建、预览、公开快照及有限模型验收见[四种环境的 CI 记录](https://github.com/blackfrog638/corkoro/actions/runs/44456101031)。macOS 任务先验证临时卷的实际大小写行为，再运行同一套 CLI。
 
 2026-11-18 本地验收使用 Node 26.13.0 和 pnpm 11.25.0。Windows 原生全量测试通过 60 项，跳过 1 项非 Windows 事务拒绝用例，有限模型和四种整站场景通过。WSL2 Ubuntu x86_64 在独立 Linux 临时目录完成冻结安装、类型检查与编译，上述两个测试文件通过 14 项，跳过 10 项 Windows 专用用例。
 
