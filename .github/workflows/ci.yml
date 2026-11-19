@@ -28,7 +28,7 @@ jobs:
             filesystem: APFS
           - name: macOS case-sensitive CLI
             os: macos-15
-            filesystem: APFSX
+            filesystem: Case-sensitive APFS
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -39,6 +39,12 @@ jobs:
           hdiutil create -size 3g -type SPARSE -fs "${{ matrix.filesystem }}" -volname CorkoroTests "$RUNNER_TEMP/corkoro.sparseimage"
           hdiutil attach -nobrowse "$RUNNER_TEMP/corkoro.sparseimage"
           mkdir /Volumes/CorkoroTests/tmp
+          touch /Volumes/CorkoroTests/tmp/probe
+          if [[ "${{ matrix.filesystem }}" == APFS ]]; then
+            test -e /Volumes/CorkoroTests/tmp/PROBE
+          else
+            test ! -e /Volumes/CorkoroTests/tmp/PROBE
+          fi
           echo 'TMPDIR=/Volumes/CorkoroTests/tmp' >> "$GITHUB_ENV"
           diskutil info /Volumes/CorkoroTests
       - name: Identify Linux test filesystem

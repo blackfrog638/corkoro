@@ -5,11 +5,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { once } from "node:events";
+import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { envelopeSchema } from "../../dist/packages/content-contract/src/index.js";
-import { startPreview } from "../../dist/apps/web/src/preview.js";
 import { readSite } from "../../dist/apps/web/src/index.js";
 
 const root = await fs.mkdtemp(path.join(os.tmpdir(), "corkoro-sites-"));
@@ -99,11 +100,28 @@ for (const [name, expected] of [
     await assert.rejects(captureDeployment(output, AbortSignal.abort()), {
       code: "CANCELLED",
     });
-    const preview = await startPreview(output, 0);
+    const child = spawn(
+      process.execPath,
+      [cli, "preview", "--out-dir", output, "--port", "0", "--json"],
+      {
+        cwd: root,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "inherit"],
+      },
+    );
+    const closed = once(child, "close");
+    const lines = createInterface({ input: child.stdout });
+    let url;
     try {
+      const first = await lines[Symbol.asyncIterator]().next();
+      assert.ok(!first.done, "Preview exited before reporting its URL");
+      const preview = envelopeSchema.parse(JSON.parse(first.value));
+      assert.equal(preview.data.buildId, site.buildId);
+      url = preview.data.url;
+      assert.equal(new URL(url).pathname, config.site.address?.base ?? "/");
       for (const file of site.files) {
         const response = await fetch(
-          preview.url + file.path.split("/").map(encodeURIComponent).join("/"),
+          url + file.path.split("/").map(encodeURIComponent).join("/"),
         );
         assert.equal(response.status, 200, file.path);
         const digest =
@@ -118,8 +136,11 @@ for (const [name, expected] of [
           assert.equal(response.headers.get("content-type"), "image/svg+xml");
       }
     } finally {
-      await preview.close();
+      lines.close();
+      child.kill();
+      await closed;
     }
+    await assert.rejects(fetch(url));
   } else {
     assert.equal(result.effect, "none");
     await assert.rejects(fs.stat(path.join(output, "site.current.json")), {

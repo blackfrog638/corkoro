@@ -124,6 +124,24 @@ test("POSIX transaction slots follow native case and Unicode lookup", {
   }
 });
 
+test("POSIX detects replacement of the locked parent before commit", {
+  skip: !["darwin", "linux"].includes(process.platform),
+}, async (t) => {
+  const s = await sandbox(t);
+  const tx = await openTransaction(s.config);
+  const dir = path.dirname(s.config);
+  try {
+    await fs.rename(dir, dir + "-moved");
+    await fs.mkdir(dir);
+    await assert.rejects(tx.commit(Buffer.from("{}"), null), {
+      code: "UNSAFE_TRANSACTION_STATE",
+    });
+    await assert.rejects(fs.stat(s.config), { code: "ENOENT" });
+  } finally {
+    await tx.close();
+  }
+});
+
 test("strict runtime schema rejects duplicates, unknown fields and page/article identity collisions", async () => {
   assert.throws(() => parseJson(Buffer.from('{"x":1,"\\u0078":2}')));
   assert.throws(() => parseJson(Buffer.from('{"x":1,}')));

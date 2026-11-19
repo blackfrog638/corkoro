@@ -93,7 +93,12 @@ def commit():
             if "sha256:" + hashlib.sha256(original.read()).hexdigest() != expected:
                 reply(code="CONFIG_CHANGED")
                 return
-        os.replace(temp, name, src_dir_fd=state_fd, dst_dir_fd=parent_fd)
+        os.chmod(temp, stat.S_IMODE(st.st_mode) & 0o600, dir_fd=state_fd)
+        try:
+            os.replace(temp, name, src_dir_fd=state_fd, dst_dir_fd=parent_fd)
+        except OSError as exc:
+            reply(code="COMMIT_UNKNOWN" if exc.errno == errno.EIO else "IO_ERROR")
+            return
     else:
         result = exclusive(state_fd, os.fsencode(temp), parent_fd, os.fsencode(name), 1 if linux else 4)
         if result:
@@ -101,7 +106,8 @@ def commit():
             if error == errno.EEXIST:
                 reply(code="CONFIG_EXISTS")
                 return
-            raise OSError(error, os.strerror(error))
+            reply(code="COMMIT_UNKNOWN" if error == errno.EIO else "IO_ERROR")
+            return
     reply(status="committed")
 
 
@@ -111,5 +117,5 @@ except EOFError:
     pass
 except subprocess.SubprocessError:
     reply(code="TRANSACTION_UNSUPPORTED")
-except OSError as exc:
-    reply(code="COMMIT_UNKNOWN" if exc.errno == errno.EIO else "IO_ERROR")
+except OSError:
+    reply(code="IO_ERROR")
