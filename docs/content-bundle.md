@@ -4,7 +4,7 @@
 
 ## 文件结构
 
-`output.directory/content.bundle.json`：
+独立库入口 `buildContentBundle` 写入 `output.directory/content.bundle.json`。完整 `corkoro build` 将同格式的包写入本次站点版本的 `site/content.bundle.json`，由 `site.current.json` 选定当前版本。[完整构建交接](decisions/0012-build-cli-snapshot-handoff.md)
 
 | 字段 | 内容 |
 | --- | --- |
@@ -36,7 +36,7 @@ buildContentBundle(configPath: string, signal?: AbortSignal): Promise<BundleResu
 readContentBundle(filename: string): Promise<ContentBundle>
 ```
 
-相对 configPath/filename 以调用方工作目录解析；传绝对路径即可独立于工作目录。配置内部相对路径仍以配置文件为基准。构建只写输出，不上传、不写输入；写入目前仅支持 Windows 本地 NTFS。
+相对 configPath/filename 以调用方工作目录解析；传绝对路径即可独立于工作目录。配置内部相对路径仍以配置文件为基准。构建只写输出，不上传、不写输入；写入复用配置与站点指针使用的事务后端，目标卷和系统依赖见[运行手册](runbook.md)。
 
 BundleResult 包含 ok、exitCode、effect、bundlePath、buildId、diagnostics。成功有路径与 buildId；相同内容返回 effect=none，新提交为 committed。失败为 none 或 unknown，unknown 时 buildId=null，不能据此猜测磁盘状态。诊断复用 CLI 结构和排序；这不是 CLI Envelope，不含 command/configVersion/data。
 

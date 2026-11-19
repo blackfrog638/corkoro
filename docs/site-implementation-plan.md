@@ -11,4 +11,4 @@
 | S5 完整 build CLI（完成） | publisher、tools/cli、结果协议 | 一次调用编排内容捕获与网站生成；结构化结果；取消/中断/提交未知有明确结果；输入源码不变、不同 cwd 相同输出 |
 | S6 CI（完成） | 工作流、runbook | 类型检查、真实测试与人工样例网站构建；固定依赖，不跳过缺失脚本，不上传 Vault |
 
-S2 先实现公共正文渲染与 URL 处理，再制作主题布局。主题不承担授权规则；地址和主题职责见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。每一步仅更新已实测的状态；遇到约束变化先修订 ADR，不把一个阶段全部混成一个提交。CLI build 已在 S5 接通；部署仍为独立未实现命令。
+S2 先实现公共正文渲染与 URL 处理，再制作主题布局。主题不承担授权规则；地址和主题职责见 [ADR 0010](decisions/0010-site-address-and-theme-boundaries.md)。每一步仅更新已实测的状态；遇到约束变化先修订 ADR，不把一个阶段全部混成一个提交。CLI build 已在 S5 接通；部署阶段的当前命令见[运行手册](runbook.md)。

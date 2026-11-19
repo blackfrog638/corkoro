@@ -10,7 +10,7 @@
 
 三平台执行 `pnpm test`、`pnpm run verify:model` 和 `pnpm run verify:sites`。macOS CI 为两种大小写模式分别挂载临时卷。请从仓库根先运行 `pnpm install --frozen-lockfile`。验收只使用临时目录中的人工 Vault。[CI 运行记录](https://github.com/blackfrog638/corkoro/actions/workflows/ci.yml)
 
-POSIX 写入依赖 /usr/bin/python3 及上述系统工具。配置、临时副本和锁载体按用户私有权限创建，原子替换产生的新文件也使用私有权限。Linux 拒绝开启目录 casefold 的 ext4。网络共享、其它文件系统和缺少所需原语的环境不属于支持范围。持锁进程终止后可重新调用；提交响应未知时先重读配置或站点指针。
+POSIX 写入依赖 /usr/bin/python3 及上述系统工具。POSIX 后端以 0600 创建候选文件及锁载体。替换已有配置时，保留原文件所有者的读写位，并移除组及其他用户的权限。Linux 拒绝开启目录 casefold 的 ext4。网络共享、其它文件系统和缺少所需原语的环境不属于支持范围。持锁进程终止后可重新调用；提交响应未知时先重读配置或站点指针。
 
 ## 当前可用能力
 
@@ -28,7 +28,7 @@ pnpm test
 pnpm run verify:model
 ```
 
-build 编译 TypeScript 并复制 Windows 辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。已配置 Windows CI，远端开发分支已验证。
+build 编译 TypeScript 并复制 Windows 和 POSIX 事务辅助脚本到 dist；test 先构建，再运行真实测试。有限状态模型是另一项验证，不能代替运行时测试。三平台的 CI 任务均执行真实入口验收。
 
 ## 站点地址准备
 
@@ -123,7 +123,7 @@ bundle.test.mjs 另验证公开正文树、内容摘要与引用闭合、零文�
 
 ## 远端与后续阶段
 
-源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；尚未配置 Pages 部署或 Cloudflare 资源，也不发邮件。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题、搜索及完整 build CLI 已完成。部署操作见下文。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
+源码远端为 [blackfrog638/corkoro](https://github.com/blackfrog638/corkoro)，默认分支 main。已配置验证用 GitHub Actions；示例站使用 gh-pages 分支，CI 验证使用人工 Vault；Cloudflare 云端环境和邮件服务待接入。引用解析、只读 plan、公开内容包与最小 Astro 站点库已落地；默认主题、搜索及完整 build CLI 已完成。部署操作见下文。CI 未来只接收经过筛选的公开快照，不上传整个 Vault。
 
 数据库迁移、生产环境、管理员认证和备份恢复在 API 实现阶段另行建立。不存在的操作不会以占位成功脚本代替。
 
@@ -154,9 +154,9 @@ pnpm corkoro build --config "tests/fixtures/vault/网站/selected.config.json" -
 
 工作流在 push、pull_request 和手动触发时运行。每个任务按锁文件安装、核对 Node、类型检查并执行完整回归，限时 20 分钟。
 
-2026-11-19 三平台真实事务、构建、预览、公开快照及有限模型验收见[四种环境的 CI 记录](https://github.com/blackfrog638/corkoro/actions/runs/44456101031)。macOS 任务先验证临时卷的实际大小写行为，再运行同一套 CLI。
+2026-11-19 三平台真实事务、构建、预览、公开快照及有限模型验收见[四种环境的 CI 记录](https://github.com/blackfrog638/corkoro/actions/runs/44456391565)。macOS 任务先验证临时卷的实际大小写行为，再运行同一套 CLI。
 
-2026-11-18 本地验收使用 Node 26.13.0 和 pnpm 11.25.0。Windows 原生全量测试通过 60 项，跳过 1 项非 Windows 事务拒绝用例，有限模型和四种整站场景通过。WSL2 Ubuntu x86_64 在独立 Linux 临时目录完成冻结安装、类型检查与编译，上述两个测试文件通过 14 项，跳过 10 项 Windows 专用用例。
+2026-11-18 本地验收使用 Node 26.13.0 和 pnpm 11.25.0。Windows 原生全量测试通过 60 项，跳过 1 项非 Windows 事务拒绝用例，有限模型和四种整站场景通过。WSL2 Ubuntu x86_64 在独立 Linux 临时目录完成冻结安装、类型检查与编译，当时的 cli.test.mjs 和 planning.test.mjs通过 14 项，跳过 10 项 Windows 专用用例。
 
 `pnpm run verify:sites` 要求先执行 `pnpm run build`，复制仓库人工 Vault 到系统临时目录，通过真实 CLI 构建 selected/pages-only，确认空配置和未授权引用返回退出 3；核对输入文件摘要及站点指针清单。临时目录保留供排查，路径打印在结果中，不写真实 Vault。
 
@@ -183,7 +183,7 @@ build 在本地生成静态网站。用户可自行选择静态托管服务；�
 
 `pnpm --silent package:site <构建输出根目录>` 将当前站点捕获为完整 JSON 快照并写到 stdout。先执行 pnpm run build 编译工具；目录相对调用工作目录，不读取 Vault、不重新构建、不写入或上传。参数错误退出 2，捕获失败返回非零且 stderr 给出诊断；失败不输出可用包。此开发工具不是 corkoro deploy 命令。
 
-库入口为 apps/web 的 captureDeployment；读取移交快照使用 content-contract 的 parseDeployment 复核摘要。快照不是直接供 Pages 服务的网页，后续适配器需将 files 写入产物仓库。详细边界见 [部署快照决策](decisions/0014-deployment-snapshot.md)。本地分支提交见下文，远端推送和状态查询仍待实现。
+库入口为 apps/web 的 captureDeployment；读取移交快照使用 content-contract 的 parseDeployment 复核摘要。快照不是直接供 Pages 服务的网页，deploy 将快照文件提交到显式指定的本地博客分支。详细边界见 [部署快照决策](decisions/0014-deployment-snapshot.md)。下文分别列出本地提交、远端推送和状态查询的操作步骤。
 
 ## 核对博客仓库的发布差异
 
@@ -213,7 +213,7 @@ $review | Format-List
 pnpm --silent corkoro deploy --snapshot "$snapshotFile" --repo "$blogRepo" --branch "$branch" --expected $review.commit --deployment-id $review.deploymentId --json
 ```
 
-成功结果含 stage=local_commit、commit、branch 和 deploymentId。只有实际更新分支时 effect=committed。已是相同内容时返回 none；原请求重试遇到该请求生成的直接后继提交，也会返回 none。提交前分支已变化或 Git 拒绝原子更新时，重新比较再决定。失去响应后先核对目标分支。操作保留快照以外文件及用户工作区/索引。远端上传与 Pages 状态跟踪留待下一阶段。
+成功结果含 stage=local_commit、commit、branch 和 deploymentId。只有实际更新分支时 effect=committed。已是相同内容时返回 none；原请求重试遇到该请求生成的直接后继提交，也会返回 none。提交前分支已变化或 Git 拒绝原子更新时，重新比较再决定。失去响应后先核对目标分支。操作保留快照以外文件及用户工作区/索引。随后可执行 upload:site 推送该提交，再用 status 核对 Pages 部署。
 
 ## 上传已核对的博客提交
 

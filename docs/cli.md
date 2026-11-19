@@ -1,6 +1,6 @@
 # CLI 契约 v1
 
-状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；本地 NTFS（Windows）、ext4（Linux）及 APFS（macOS）通过各自的事务后端写入。build 已实现；deploy 已支持本地分支提交；status 支持按分支与提交查询 GitHub Pages，comments 仍返回不支持；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
+状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；本地固定 NTFS（Windows）、ext4（Linux）及 APFS（macOS）通过各自的事务后端写入。build 已实现；deploy 已支持本地分支提交；status 支持按分支与提交查询 GitHub Pages，comments 仍返回不支持；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
 
 ## 命令结构
 
@@ -33,22 +33,20 @@ corkoro content <action> [arguments] [options]
 
 提交前失败不改变配置语义；锁文件、临时文件等工具事务元数据不属于用户内容，不能扩大写入权限。提交后进程崩溃或响应丢失时结果可能未知，先重新 list/读取配置，再幂等重试；不能把所有非零退出或无响应都视为“未写入”。init 并发创建必须只有一个提交成功，重试遇到 CONFIG_EXISTS 不覆盖。
 
-## 后续命令：名称与职责预留
+## 部署状态查询
 
-| 命令 | 职责 | 详细参数 |
-| --- | --- | --- |
+`status --repo OWNER/BLOG --branch <branch> --expected <完整提交号> [--json]` 只读查询 GitHub Pages，核对指定分支与提交的部署状态。
 
-| `status` | 查询指定部署的状态 | `--repo OWNER/BLOG --branch <branch> --expected <完整提交号>` |
-| `comments list/approve/reject/export` | 有认证的评论管理操作 | 评论阶段确定 |
+## 预留的评论管理命令
 
-不在已发布的 help 中将预留命令显示为可用能力；可以单独列为 planned。可执行文件的发布与安装方式尚未确定，文档示例不代表系统已安装全局 `corkoro`。
+`comments list/approve/reject/export` 用于规划中的评论管理。当前帮助将 comments 列为 planned，调用返回 `UNSUPPORTED_COMMAND`。
 
 ## 参数与路径
 
 - `inspect/init` 的 `--source` 和各命令的 `--config` 本身相对调用者工作目录解析。
 - 配置中的所有路径字段相对配置文件目录。`init --out-dir` 也以目标配置目录为基准（可传绝对路径）；未来对应配置覆盖参数沿用此基准，显式参数优先。
 - `content add <source-path>` 是源库内文件标识，相对 `source.root`；清单内保存 `/` 分隔路径，不接受绝对路径和父级遍历。这与配置路径是不同类型。
-- `init` 尽量生成相对配置路径；Windows 跨盘无法表达相对路径时使用绝对路径并提示不可直接移植到 CI。
+- `init` 尽量生成相对配置路径；Windows 跨盘无法表达相对路径时使用绝对路径；迁移到另一台主机时需重新指定该位置。
 - 首版没有自动查找配置，没有 `--all`、`--force`、持续发布匹配规则或可执行 shell 配置。含空格参数通过独立参数传入。
 
 ## JSON 输出与退出码

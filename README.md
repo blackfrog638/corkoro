@@ -6,7 +6,7 @@
 
 **桌面 CLI 已通过三平台本地构建与预览验收。** 支持 Windows 本地固定 NTFS、Linux 本地 ext4 和 macOS 本地 APFS（大小写敏感和不敏感）。系统依赖、命令和适用范围见[运行手册](docs/runbook.md)。
 
-2026-11-12：已实现严格配置校验、inspect、init、content list/add/remove、含引用检查的 check 和只读 plan。配置写入已在 Windows 本地 NTFS 上验证；其它写入平台明确拒绝。运行与验证命令见 runbook，语法边界见 [引用规划决策](docs/decisions/0008-readonly-reference-planning.md)。已实现[公开内容包 v1](docs/content-bundle.md)的库入口、转换与 Windows 原子写出。2026-11-13 已增加最小 Astro 站点构建库（见 runbook）；默认主题及 Pagefind 搜索已实现；完整 build CLI 已实现；本地 preview 已实现；deploy 已支持本地博客分支提交；upload:site 支持将核对过的提交推送到显式指定的博客仓库；status 可查询 GitHub Pages 部署记录；评论数据层已在本地 SQLite 验证，Worker HTTP 接口和 Obsidian 插件尚未实现；已配置 Windows CI（远端已验证），没有配置部署资源。有限状态模型与真实 CLI 测试分别维护。
+CLI 支持检查与选择内容、生成公开内容包、构建 Astro 站点与 Pagefind 索引，以及在本地预览。发布时，`deploy` 将快照提交到指定的本地博客分支，`upload:site` 推送核对过的提交，`status` 查询 GitHub Pages 部署记录。评论数据层已在本地 SQLite 验证，Worker HTTP 接口和 Obsidian 插件待开发。
 
 ## 从这里开始
 
@@ -41,7 +41,7 @@
 
 真实文章、关于页、头像和配置保存在用户 Vault。一个 `corkoro.config.json` 内含发布清单、个人资料、友链及默认主题设置，通过 CLI `--config` 引用。配置路径字段相对配置目录，文章清单中的 source 相对源根目录。构建只读输入；init/content 可显式创建或修改指定配置。
 
-Corkoro 自带 default 主题，生成内容包、Astro 站点项目和静态网站，输出位于 Vault 外且可完全重建。用户无需维护或修改生成的站点项目；部署上传已生成的产物。Obsidian 插件收集配置、调用 CLI 和展示结果；依赖分析及发布规则只在核心维护。人工测试样例和示例配置可以放在本仓库。
+Corkoro 自带 default 主题，生成内容包、Astro 站点项目和静态网站，输出位于 Vault 外且可完全重建。用户无需维护或修改生成的站点项目；部署上传已生成的产物。规划中的 Obsidian 插件将收集配置、调用 CLI 和展示结果；依赖分析及发布规则只在核心维护。人工测试样例和示例配置可以放在本仓库。
 
 陌生 Vault 的目标流程为 `inspect → init → content add/list → check → plan → build → preview → deploy`。初始化不选择文章；文章只有配置的 publication.entries 中 `publish: true` 的条目进入构建；关于页通过 site.pages 显式选择，资料和友链直接写在 site 中。没有文章但有页面或资料也可构建。源笔记里的公开属性只是候选线索，链接和嵌入也不能自动公开其他笔记。
 
