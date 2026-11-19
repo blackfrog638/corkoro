@@ -10,6 +10,10 @@ export const excluded = new Set([
   "node_modules",
   ".corkoro-state",
 ]);
+export const isStateStage = (name: string) =>
+  /^\.corkoro-init-[a-z0-9]{6}$/i.test(name);
+export const isExcludedName = (name: string) =>
+  excluded.has(name.toLowerCase()) || isStateStage(name);
 export const text = z
   .string()
   .refine((s) => s.trim().length > 0, "Expected nonempty text");
@@ -35,7 +39,9 @@ export const sourceSchema = filePath.refine(
     !s.includes("\\") &&
     !s.includes(":") &&
     s.endsWith(".md") &&
-    s.split("/").every((x) => x && x !== "." && x !== ".." && !excluded.has(x)),
+    s
+      .split("/")
+      .every((x) => x && x !== "." && x !== ".." && !excluded.has(x)),
   "Invalid source",
 );
 export const entrySchema = z.strictObject({

@@ -2,7 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { parseDocument } from "yaml";
 import {
-  excluded,
+  isExcludedName,
+  isStateStage,
   inspectSchema,
   type Diagnostic,
 } from "../../content-contract/src/index.js";
@@ -24,11 +25,11 @@ export async function inspect(source: string, signal?: AbortSignal) {
       cancelled(signal);
       const full = path.join(dir, e.name),
         relative = path.relative(root, full).split(path.sep).join("/");
-      if (excluded.has(e.name.toLowerCase())) {
+      if (isExcludedName(e.name)) {
         data.skipped.push({
           source: relative,
           reason:
-            e.name.toLowerCase() === ".corkoro-state"
+            e.name.toLowerCase() === ".corkoro-state" || isStateStage(e.name)
               ? "transaction"
               : "system",
         });

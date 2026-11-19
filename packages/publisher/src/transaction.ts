@@ -8,6 +8,10 @@ import { canonical, forbidden, hash } from "./files.js";
 import { cancelled, Failure } from "./errors.js";
 import { parseJson } from "../../content-contract/src/index.js";
 
+function ignoreMissing(error: NodeJS.ErrnoException) {
+  if (error.code !== "ENOENT") throw error;
+}
+
 async function safeFile(p: string, allowMissing = false) {
   try {
     const s = await fs.lstat(p);
@@ -124,24 +128,55 @@ export async function openTransaction(input: string, signal?: AbortSignal) {
     cancelled(signal);
     await fs.mkdir(parent, { recursive: true });
     stateDir = path.join(parent, ".corkoro-state");
-    let created = false;
     try {
-      await fs.mkdir(stateDir, { mode: 0o700 });
-      created = true;
+      await fs.lstat(stateDir);
     } catch (e) {
-      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+      // Publish the directory and its marker together, without replacing even
+      // an empty pre-existing directory. The staging area contains no Vault data.
+      const stage = await fs.mkdtemp(path.join(parent, ".corkoro-init-"));
+      const owned = await fs.lstat(stage, { bigint: true });
+      const marker = path.join(stage, "marker.json");
+      let ownedMarker: { dev: bigint; ino: bigint } | undefined;
+      try {
+        const file = await fs.open(marker, "wx");
+        try {
+          ownedMarker = await file.stat({ bigint: true });
+          await file.writeFile(
+            JSON.stringify({ format: "corkoro-transactions", version: 1 }),
+          );
+        } finally {
+          await file.close();
+        }
+        send({ action: "install-state", stage });
+        await receive();
+      } finally {
+        const current = await fs
+          .lstat(stage, { bigint: true })
+          .catch(ignoreMissing);
+        if (current && current.dev === owned.dev && current.ino === owned.ino) {
+          const entry = await fs
+            .lstat(marker, { bigint: true })
+            .catch(ignoreMissing);
+          if (
+            ownedMarker &&
+            entry?.dev === ownedMarker.dev &&
+            entry.ino === ownedMarker.ino
+          )
+            await fs.unlink(marker);
+          await fs.rmdir(stage);
+        }
+      }
     }
     const d = await fs.lstat(stateDir);
     if (!d.isDirectory() || d.isSymbolicLink())
       throw new Failure("UNSAFE_TRANSACTION_STATE", 4);
     const marker = path.join(stateDir, "marker.json");
-    if (created)
-      await fs.writeFile(
-        marker,
-        JSON.stringify({ format: "corkoro-transactions", version: 1 }),
-        { flag: "wx" },
-      );
-    await safeFile(marker);
+    await safeFile(marker).catch((e) => {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT")
+        throw new Failure("UNSAFE_TRANSACTION_STATE", 4);
+      throw e;
+    });
     let metadata: unknown;
     try {
       metadata = parseJson(await fs.readFile(marker));

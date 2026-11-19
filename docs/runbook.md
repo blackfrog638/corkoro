@@ -10,7 +10,7 @@
 
 三平台执行 `pnpm test`、`pnpm run verify:model` 和 `pnpm run verify:sites`。macOS CI 为两种大小写模式分别挂载临时卷。请从仓库根先运行 `pnpm install --frozen-lockfile`。验收只使用临时目录中的人工 Vault。[CI 运行记录](https://github.com/blackfrog638/corkoro/actions/workflows/ci.yml)
 
-POSIX 写入依赖 /usr/bin/python3 及上述系统工具。POSIX 后端以 0600 创建候选文件及锁载体。替换已有配置时，保留原文件所有者的读写位，并移除组及其他用户的权限。Linux 拒绝开启目录 casefold 的 ext4。网络共享、其它文件系统和缺少所需原语的环境不属于支持范围。持锁进程终止后可重新调用；提交响应未知时先重读配置或站点指针。
+POSIX 写入依赖 /usr/bin/python3 及上述系统工具。POSIX 后端以 0600 创建候选文件及锁载体。替换已有配置时沿用属主、属组、普通权限位及访问 ACL，例如 0640 的共享配置更新后仍为 0640。无法复制访问权限时在提交前报错。缺少 findmnt 时返回 TRANSACTION_UNSUPPORTED。Linux 拒绝开启目录 casefold 的 ext4。网络共享、其它文件系统和缺少所需原语的环境不属于支持范围。持锁进程终止后可重新调用；提交响应未知时先重读配置或站点指针。
 
 ## 当前可用能力
 

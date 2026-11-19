@@ -30,20 +30,49 @@ def supported(directory):
     return info.get("FilesystemType") == "apfs"
 
 
+def preserve_access(original, candidate, libc):
+    source = os.fstat(original)
+    staged = os.fstat(candidate)
+    if (source.st_uid, source.st_gid) != (staged.st_uid, staged.st_gid):
+        os.fchown(candidate, source.st_uid, source.st_gid)
+    os.fchmod(candidate, source.st_mode & 0o777)
+    if sys.platform == "darwin":
+        if libc.fcopyfile(original, candidate, None, 1) != 0:  # COPYFILE_ACL
+            raise OSError(ctypes.get_errno(), "copy access ACL")
+    else:
+        acl = "system.posix_acl_access"
+        if acl in os.listxattr(original):
+            os.setxattr(candidate, acl, os.getxattr(original, acl))
+        elif acl in os.listxattr(candidate):
+            os.removexattr(candidate, acl)
+
+
 def commit():
     target = json.loads(input())["path"]
     parent, name = os.path.split(target)
     libc = ctypes.CDLL(None, use_errno=True)
     linux = sys.platform == "linux"
     exclusive = getattr(libc, "renameat2" if linux else "renameatx_np", None)
-    if exclusive is None or not supported(parent):
+    try:
+        available = exclusive is not None and supported(parent)
+    except FileNotFoundError:
+        available = False
+    if not available:
         reply(code="TRANSACTION_UNSUPPORTED")
         return
     reply(status="supported")
-    if json.loads(input()).get("action") != "lock":
-        return
+    request = json.loads(input())
     directory_flags = os.O_DIRECTORY | os.O_NOFOLLOW
     parent_fd = os.open(parent, directory_flags)
+    if request.get("action") == "install-state":
+        result = exclusive(parent_fd, os.fsencode(os.path.basename(request["stage"])),
+                           parent_fd, b".corkoro-state", 1 if linux else 4)
+        if result and ctypes.get_errno() != errno.EEXIST:
+            raise OSError(ctypes.get_errno(), "install transaction directory")
+        reply(status="ready")
+        request = json.loads(input())
+    if request.get("action") != "lock":
+        return
     state_fd = os.open(".corkoro-state", directory_flags, dir_fd=parent_fd)
     # Native lookup preserves the volume's filename equivalence rules, even
     # for a concurrent init where the actual target does not exist yet.
@@ -93,7 +122,11 @@ def commit():
             if "sha256:" + hashlib.sha256(original.read()).hexdigest() != expected:
                 reply(code="CONFIG_CHANGED")
                 return
-        os.chmod(temp, stat.S_IMODE(st.st_mode) & 0o600, dir_fd=state_fd)
+            candidate = os.open(temp, os.O_RDWR | os.O_NOFOLLOW, dir_fd=state_fd)
+            try:
+                preserve_access(fd, candidate, libc)
+            finally:
+                os.close(candidate)
         try:
             os.replace(temp, name, src_dir_fd=state_fd, dst_dir_fd=parent_fd)
         except OSError as exc:

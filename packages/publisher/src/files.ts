@@ -3,7 +3,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import {
   configSchema,
-  excluded,
+  isExcludedName,
   parseJson,
   type Config,
 } from "../../content-contract/src/index.js";
@@ -36,8 +36,7 @@ export async function containsPath(root: string, target: string) {
     if (path.dirname(p) === p) return false;
   }
 }
-export const forbidden = (p: string) =>
-  p.split(/[\/\\]/).some((x) => excluded.has(x.toLowerCase()));
+export const forbidden = (p: string) => p.split(/[\/\\]/).some(isExcludedName);
 export async function canonical(p: string): Promise<string> {
   try {
     return await fs.realpath(p);

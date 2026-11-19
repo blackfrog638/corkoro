@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -590,8 +590,6 @@ test(
   "simultaneous initializers never overwrite each other",
   async (t) => {
     const s = await sandbox(t);
-    const tx = await openTransaction(s.config);
-    await tx.close();
     const results = await Promise.all([init(s), init(s)]);
     assert.equal(results.filter((r) => r.effect === "committed").length, 1);
     assert.equal(results.filter((r) => r.exitCode === 4).length, 1);
@@ -610,31 +608,89 @@ test(
   },
 );
 
+test("init refuses a pre-existing unmarked state directory", async (t) => {
+  const s = await sandbox(t);
+  const state = path.join(path.dirname(s.config), ".corkoro-state");
+  await fs.mkdir(state);
+  const result = await init(s);
+  assert.equal(result.effect, "none");
+  assert.equal(result.diagnostics[0].code, "UNSAFE_TRANSACTION_STATE");
+  assert.deepEqual(await fs.readdir(state), []);
+});
+
+test("another initializer can commit while the first prepares its marker", async (t) => {
+  const s = await sandbox(t);
+  const staged = Promise.withResolvers();
+  const resume = Promise.withResolvers();
+  const open = fs.open;
+  fs.open = async (file, ...args) => {
+    if (path.basename(file) === "marker.json" && args[0] === "wx") {
+      staged.resolve();
+      await resume.promise;
+    }
+    return open(file, ...args);
+  };
+  const preparing = openTransaction(s.config);
+  try {
+    await Promise.race([
+      staged.promise,
+      preparing.then(() => assert.fail("marker was not staged")),
+    ]);
+    const result = await init(s);
+    assert.equal(result.effect, "committed");
+  } finally {
+    fs.open = open;
+    resume.resolve();
+    await (await preparing).close();
+  }
+  const names = await fs.readdir(path.dirname(s.config));
+  assert.ok(!names.some((name) => name.startsWith(".corkoro-init-")));
+});
+
 test(
-  "lost response after a real commit can be retried without changing identity",
+  "POSIX updates preserve shared access and private configs stay private",
+  {
+    skip: !["linux", "darwin"].includes(process.platform),
+  },
   async (t) => {
     const s = await sandbox(t);
-    await init(s);
-    const worker = path.join(s.root, "no-response.mjs");
-    const moduleUrl = new URL(
-      "../../dist/packages/publisher/src/index.js",
-      import.meta.url,
-    ).href;
-    const request = {
-      command: "content add",
-      target: "文章/起步.md",
-      slug: "first",
-      config: s.config,
-    };
-    await fs.writeFile(
-      worker,
-      `import {execute} from ${JSON.stringify(moduleUrl)};const r=await execute(${JSON.stringify(request)});process.exit(r.effect==='committed'?9:10);`,
-    );
-    const child = spawn(process.execPath, [worker], { windowsHide: true });
-    const [status] = await once(child, "close");
-    assert.equal(status, 9);
-    const before = await fs.readFile(s.config);
-    const r = await run([
+    assert.equal((await init(s)).exitCode, 0);
+    assert.equal((await fs.stat(s.config)).mode & 0o777, 0o600);
+    await fs.chmod(s.config, 0o640);
+    const aclKey = "system.posix_acl_access";
+    if (process.platform === "linux") {
+      // Grant a named uid read access. chmod alone cannot recreate this entry.
+      execFileSync("/usr/bin/python3", [
+        "-I",
+        "-c",
+        "import os,struct,sys; entries=[(1,6,-1),(2,4,12345),(4,0,-1),(16,4,-1),(32,0,-1)]; os.setxattr(sys.argv[1],sys.argv[2],struct.pack('<I',2)+b''.join(struct.pack('<HHi',*e) for e in entries))",
+        s.config,
+        aclKey,
+      ]);
+    } else {
+      execFileSync("/bin/chmod", ["+a", "everyone allow readattr", s.config]);
+    }
+    const readAcl = () =>
+      process.platform === "linux"
+        ? execFileSync(
+            "/usr/bin/python3",
+            [
+              "-I",
+              "-c",
+              "import os,sys; print(os.getxattr(sys.argv[1],sys.argv[2]).hex())",
+              s.config,
+              aclKey,
+            ],
+            { encoding: "utf8" },
+          )
+        : execFileSync("/bin/ls", ["-lde", s.config], { encoding: "utf8" })
+            .split("\n")
+            .slice(1)
+            .join("\n");
+    const acl = readAcl();
+    assert.ok(acl.trim());
+    const before = await fs.stat(s.config);
+    const result = await run([
       "content",
       "add",
       "文章/起步.md",
@@ -643,10 +699,79 @@ test(
       "--config",
       s.config,
     ]);
-    assert.equal(r.data.changed, false);
-    assert.deepEqual(await fs.readFile(s.config), before);
+    assert.equal(result.effect, "committed");
+    const after = await fs.stat(s.config);
+    assert.equal(readAcl(), acl);
+    assert.deepEqual(
+      [after.mode, after.uid, after.gid],
+      [before.mode, before.uid, before.gid],
+    );
   },
 );
+
+test(
+  "missing findmnt reports an unsupported environment before metadata creation",
+  {
+    skip: process.platform !== "linux",
+  },
+  async (t) => {
+    const s = await sandbox(t);
+    const helper = path.join(
+      repo,
+      "dist/packages/publisher/native/posix-transaction.py",
+    );
+    const output = execFileSync(
+      "/usr/bin/python3",
+      [
+        "-I",
+        "-c",
+        "import runpy, sys; from unittest.mock import patch\nwith patch('subprocess.check_output', side_effect=FileNotFoundError('findmnt')):\n runpy.run_path(sys.argv[1], run_name='__main__')",
+        helper,
+      ],
+      { input: JSON.stringify({ path: s.config }) + "\n", encoding: "utf8" },
+    );
+    assert.deepEqual(JSON.parse(output), { code: "TRANSACTION_UNSUPPORTED" });
+    await assert.rejects(
+      fs.stat(path.join(path.dirname(s.config), ".corkoro-state")),
+      { code: "ENOENT" },
+    );
+  },
+);
+
+test("lost response after a real commit can be retried without changing identity", async (t) => {
+  const s = await sandbox(t);
+  await init(s);
+  const worker = path.join(s.root, "no-response.mjs");
+  const moduleUrl = new URL(
+    "../../dist/packages/publisher/src/index.js",
+    import.meta.url,
+  ).href;
+  const request = {
+    command: "content add",
+    target: "文章/起步.md",
+    slug: "first",
+    config: s.config,
+  };
+  await fs.writeFile(
+    worker,
+    `import {execute} from ${JSON.stringify(moduleUrl)};const r=await execute(${JSON.stringify(request)});process.exit(r.effect==='committed'?9:10);`,
+  );
+  const child = spawn(process.execPath, [worker], { windowsHide: true });
+  const [status] = await once(child, "close");
+  assert.equal(status, 9);
+  const before = await fs.readFile(s.config);
+  const r = await run([
+    "content",
+    "add",
+    "文章/起步.md",
+    "--slug",
+    "first",
+    "--config",
+    s.config,
+  ]);
+  assert.equal(r.data.changed, false);
+  assert.deepEqual(await fs.readFile(s.config), before);
+});
 
 test(
   "junction escape and config disguised as Markdown are blocked by path checks",

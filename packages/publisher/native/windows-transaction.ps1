@@ -21,6 +21,16 @@ try {
   Reply @{status='supported'}
   $request = [Console]::ReadLine() | ConvertFrom-Json
   if ($null -eq $request) { exit }
+  if ($request.action -eq 'install-state') {
+    $state = [IO.Path]::Combine([IO.Path]::GetDirectoryName($target), '.corkoro-state')
+    try { [IO.Directory]::Move([string]$request.stage, $state) }
+    catch {
+      if (![IO.Directory]::Exists($state) -and ![IO.File]::Exists($state)) { throw }
+    }
+    Reply @{status='ready'}
+    $request = [Console]::ReadLine() | ConvertFrom-Json
+    if ($null -eq $request) { exit }
+  }
   try {
     $carrier = New-Object System.IO.FileStream([string]$request.lock, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
   } catch {
