@@ -134,3 +134,95 @@ test("Worker routes guard writes and return only moderated public fields", async
   env.COMMENT_ARTICLES = [];
   assert.equal((await get("articleId=a")).status, 404);
 });
+import admin from "../../dist/apps/api/src/admin.js";
+import { randomBytes, createHash } from "node:crypto";
+
+test("isolated admin entry authenticates, records a single decision and tolerates retries", async (t) => {
+  const { sqlite, db } = database(t);
+  sqlite.exec(
+    readFileSync(
+      new URL("../../apps/api/migrations/0002_reviews.sql", import.meta.url),
+      "utf8",
+    ),
+  );
+  const token = randomBytes(32).toString("base64url");
+  const env = {
+    DB: db,
+    ADMIN_TOKEN_SHA256: createHash("sha256").update(token).digest("hex"),
+  };
+  function call(path = "", method = "GET", key = token, bindings = env) {
+    return admin.fetch(
+      new Request("https://admin.invalid/admin/comments" + path, {
+        method,
+        headers: { Authorization: "Bearer " + key },
+      }),
+      bindings,
+    );
+  }
+  for (let i = 0; i < 2; i++)
+    await submitComment(db, {
+      articleId: "stable",
+      body: "hello",
+      displayName: "test",
+      email: "private@example.org",
+    });
+  assert.equal((await call("", "GET", "")).status, 401);
+  assert.equal(
+    (await call("/1/approve", "POST", randomBytes(32).toString("base64url")))
+      .status,
+    401,
+  );
+  assert.equal((await call("", "GET", token, { DB: db })).status, 401);
+  assert.equal(
+    (
+      await worker.fetch(new Request("https://public.invalid/admin/comments"), {
+        DB: db,
+      })
+    ).status,
+    404,
+  );
+  const queue = await (await call()).json();
+  assert.deepEqual(
+    queue.comments.map((c) => c.id),
+    [1, 2],
+  );
+  assert.equal("email" in queue.comments[0], false);
+  assert.equal((await call("/1/approve", "POST")).status, 200);
+  assert.equal((await call("/1/approve", "POST")).status, 200);
+  assert.equal((await call("/1/reject", "POST")).status, 409);
+  assert.equal((await call("/2/reject", "POST")).status, 200);
+  assert.equal((await call("/3/reject", "POST")).status, 404);
+  assert.deepEqual(await (await call()).json(), { comments: [] });
+  assert.deepEqual(
+    (await listPublicComments(db, { articleId: "stable" })).map((c) => c.id),
+    [1],
+  );
+  assert.deepEqual(
+    sqlite
+      .prepare("SELECT decision FROM comment_reviews ORDER BY comment_id")
+      .all()
+      .map((r) => r.decision),
+    ["approved", "rejected"],
+  );
+});
+test("missing review migration cannot publish an unaudited comment", async (t) => {
+  const { db } = database(t);
+  await submitComment(db, {
+    articleId: "a",
+    displayName: "visitor",
+    body: "text",
+  });
+  const token = randomBytes(32).toString("base64url");
+  const response = await admin.fetch(
+    new Request("https://admin.invalid/admin/comments/1/approve", {
+      method: "POST",
+      headers: { authorization: "Bearer " + token },
+    }),
+    {
+      DB: db,
+      ADMIN_TOKEN_SHA256: createHash("sha256").update(token).digest("hex"),
+    },
+  );
+  assert.equal(response.status, 503);
+  assert.deepEqual(await listPublicComments(db, { articleId: "a" }), []);
+});

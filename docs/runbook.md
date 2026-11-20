@@ -238,3 +238,13 @@ pnpm --silent corkoro status --repo OWNER/BLOG --branch "$branch" --expected $lo
 ## 本地评论数据层验收
 
 在仓库根运行 `pnpm run build`，再运行 `node --test tests/runtime/comments.test.mjs`。测试在内存 SQLite 上执行 apps/api/migrations/0001_comments.sql，通过 D1 风格的语句适配器验证匿名提交、审核状态隔离、文章隔离、可选邮箱和分页。全量 `pnpm test` 包含此用例。同一用例文件通过 Worker fetch 入口发送标准 Request，并核验状态码和 JSON。限流使用测试绑定。真实 Workers 运行时和云端 D1 仍待验收。
+
+## 管理员审核评论
+
+管理入口为单独的 apps/api/src/admin.ts，使用同一博客的 DB。先依次应用 0001_comments.sql 与 0002_reviews.sql。每个环境单独生成 32 个随机字节并编码为无填充 base64url。将该字符串的 SHA-256 小写十六进制摘要设为 ADMIN_TOKEN_SHA256，原令牌仅供管理员客户端通过 HTTPS 的 Authorization 请求头以 Bearer 方式使用。更换绑定的摘要即可轮换令牌。
+
+- GET /admin/comments 返回最多 50 条待审评论；下一页传入 ?after=上一页最后一条评论的数字ID。
+- POST /admin/comments/{id}/approve 或 /reject 决定结果。相同决定重试返回 200，相反决定返回 409，不存在的 ID 返回 404。缺少有效凭据返回 401。
+- 审核决定及 UTC 时间与评论状态在同一 SQL 语句中提交。当前凭据代表单一管理员，不区分多位操作者。公开 Worker 不挂载管理入口。
+
+本地验收沿用上述 comments.test.mjs；云端迁移和服务绑定待指定预览环境后验证。

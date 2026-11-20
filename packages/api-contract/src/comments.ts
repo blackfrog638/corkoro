@@ -18,3 +18,5 @@ export const commentPage = z.strictObject({
   after: z.number().int().nonnegative().default(0),
   limit: z.number().int().min(1).max(100).default(50),
 });
+export const moderationDecision = z.enum(["approved", "rejected"]);
+export const moderationCursor = commentPage.shape.after;
