@@ -1,6 +1,6 @@
 # CLI 契约 v1
 
-状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；本地固定 NTFS（Windows）、ext4（Linux）及 APFS（macOS）通过各自的事务后端写入。build 已实现；deploy 已支持本地分支提交；status 支持按分支与提交查询 GitHub Pages，comments 仍返回不支持；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
+状态：已实现 inspect、init、content list/add/remove、check 和只读 plan；本地固定 NTFS（Windows）、ext4（Linux）及 APFS（macOS）通过各自的事务后端写入。build 已实现；deploy 已支持本地分支提交；status 支持按分支与提交查询 GitHub Pages，comments 已支持待审列表、批准和拒绝；preview 已实现。引用支持边界见 [决策 0008](decisions/0008-readonly-reference-planning.md)。仓库内运行入口见 runbook，尚未全局发布 corkoro。配置与选择语义以 [发布范围协议](publication.md) 为准。校验层次、并发、提交和证明边界见 [状态机](state-machine.md)及[决策 0005](decisions/0005-command-state-boundaries.md)。七个命令的精确封装、守卫和错误优先级以 [结果协议](cli-protocol.md) 为准；配置写入以 [事务协议](config-transactions.md) 为准。
 
 ## 命令结构
 
@@ -39,7 +39,7 @@ corkoro content <action> [arguments] [options]
 
 ## 预留的评论管理命令
 
-`comments list/approve/reject/export` 用于规划中的评论管理。当前帮助将 comments 列为 planned，调用返回 `UNSUPPORTED_COMMAND`。
+`comments list --origin <url> [--after <id>]` 查询一页待审评论。`comments approve|reject <id> --origin <url>` 审核指定评论。均支持 `--json`。认证和退出码见运行手册。导出仍待开发。
 
 ## 参数与路径
 

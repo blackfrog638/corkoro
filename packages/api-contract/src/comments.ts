@@ -20,3 +20,10 @@ export const commentPage = z.strictObject({
 });
 export const moderationDecision = z.enum(["approved", "rejected"]);
 export const moderationCursor = commentPage.shape.after;
+export const moderationList = z.strictObject({
+  comments: publicComment.array().max(50),
+});
+export const moderationReceipt = z.strictObject({
+  id: publicComment.shape.id,
+  status: moderationDecision,
+});

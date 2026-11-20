@@ -226,3 +226,104 @@ test("missing review migration cannot publish an unaudited comment", async (t) =
   assert.equal(response.status, 503);
   assert.deepEqual(await listPublicComments(db, { articleId: "a" }), []);
 });
+import { createServer } from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+
+test("moderation CLI uses an explicit origin and verifies Worker decisions", async (t) => {
+  const { sqlite, db } = database(t);
+  sqlite.exec(
+    readFileSync(
+      new URL("../../apps/api/migrations/0002_reviews.sql", import.meta.url),
+      "utf8",
+    ),
+  );
+  const token = randomBytes(32).toString("base64url");
+  const bindings = {
+    DB: db,
+    ADMIN_TOKEN_SHA256: createHash("sha256").update(token).digest("hex"),
+  };
+  let requests = 0,
+    loseReply = false;
+  let mismatch = false;
+  const server = createServer(async (req, res) => {
+    requests++;
+    const response = await admin.fetch(
+      new Request(origin + req.url, {
+        method: req.method,
+        headers: { authorization: req.headers.authorization },
+      }),
+      bindings,
+    );
+    if (loseReply) {
+      loseReply = false;
+      res.destroy();
+      return;
+    }
+    res.writeHead(response.status);
+    res.end(
+      mismatch
+        ? JSON.stringify({ id: 999, status: "approved" })
+        : await response.text(),
+    );
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const origin = "http://127.0.0.1:" + server.address().port;
+  const cli = fileURLToPath(
+    new URL("../../dist/tools/cli/src/main.js", import.meta.url),
+  );
+  async function run(args, exit = 0) {
+    let result;
+    try {
+      result = await promisify(execFile)(
+        process.execPath,
+        [cli, "comments", ...args, "--json"],
+        {
+          env: {
+            ...process.env,
+            CORKORO_ADMIN_ORIGIN: origin,
+            CORKORO_ADMIN_TOKEN: token,
+          },
+        },
+      );
+      assert.equal(exit, 0);
+    } catch (e) {
+      assert.equal(e.code, exit);
+      result = e;
+    }
+    assert.equal(result.stdout.includes(token), false);
+    const value = JSON.parse(result.stdout);
+    assert.equal(value.exitCode, exit);
+    return value;
+  }
+  for (let i = 0; i < 2; i++)
+    await submitComment(db, {
+      articleId: "a",
+      displayName: "visitor",
+      body: "text",
+    });
+  await run(["list", "--origin", origin + "/other"], 2);
+  await run(["list", "--origin", "https://example.invalid"], 2);
+  assert.equal(requests, 0);
+  const target = ["--origin", origin];
+  assert.deepEqual(
+    (await run(["list", "--after", "1", ...target])).data.comments.map(
+      (c) => c.id,
+    ),
+    [2],
+  );
+  mismatch = true;
+  await run(["approve", "1", ...target], 5);
+  mismatch = false;
+  loseReply = true;
+  await run(["approve", "1", ...target], 5);
+  assert.equal(
+    (await run(["approve", "1", ...target])).data.status,
+    "approved",
+  );
+  await run(["reject", "1", ...target], 4);
+  assert.equal((await run(["reject", "2", ...target])).data.status, "rejected");
+  assert.deepEqual((await run(["list", ...target])).data.comments, []);
+});

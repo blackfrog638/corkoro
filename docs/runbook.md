@@ -248,3 +248,16 @@ pnpm --silent corkoro status --repo OWNER/BLOG --branch "$branch" --expected $lo
 - 审核决定及 UTC 时间与评论状态在同一 SQL 语句中提交。当前凭据代表单一管理员，不区分多位操作者。公开 Worker 不挂载管理入口。
 
 本地验收沿用上述 comments.test.mjs；云端迁移和服务绑定待指定预览环境后验证。
+
+### 用 CLI 审核
+
+在管理员进程的环境中提供 CORKORO_ADMIN_TOKEN 和与之配对的 CORKORO_ADMIN_ORIGIN（规范 HTTPS origin，无尾斜线）。本机测试可使用 http://127.0.0.1:端口 或 IPv6 回环地址。下面的 origin 必须与凭据对应。命令不跟随重定向。
+
+```powershell
+pnpm --silent corkoro comments list --origin "$env:CORKORO_ADMIN_ORIGIN" --json
+pnpm --silent corkoro comments list --origin "$env:CORKORO_ADMIN_ORIGIN" --after 50 --json
+pnpm --silent corkoro comments approve 12 --origin "$env:CORKORO_ADMIN_ORIGIN" --json
+pnpm --silent corkoro comments reject 13 --origin "$env:CORKORO_ADMIN_ORIGIN" --json
+```
+
+列表最多返回 50 条，用上一页最后一条的 id 继续。管理命令 JSON 含 command、ok、exitCode 和 data 或 error。退出 0 表示查询成功或服务端确认指定决定，2 表示参数或凭据配置错误，4 表示查询失败或服务端拒绝操作，130 表示已知取消。写请求响应丢失、超时或回执不匹配时返回 5；只对同一目标和 ID 重试原决定。审核正文是访客数据。

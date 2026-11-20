@@ -1,3 +1,4 @@
+import { runModeration } from "./moderation.js";
 import { status } from "./status.js";
 import { deploy } from "./deploy.js";
 import { startPreview } from "../../../apps/web/src/preview.js";
@@ -28,6 +29,7 @@ function parse(): Request | "help" | "version" {
           "inspect",
           "init",
           "content",
+          "comments",
           "check",
           "plan",
           "build",
@@ -36,8 +38,10 @@ function parse(): Request | "help" | "version" {
           "deploy",
         ].includes(args[0]!)) ||
       (args.length === 3 &&
-        args[0] === "content" &&
-        ["list", "add", "remove"].includes(args[1]!)))
+        ((args[0] === "content" &&
+          ["list", "add", "remove"].includes(args[1]!)) ||
+          (args[0] === "comments" &&
+            ["list", "approve", "reject"].includes(args[1]!)))))
   )
     return "help";
   let offset = 1;
@@ -136,53 +140,65 @@ function parse(): Request | "help" | "version" {
   };
 }
 try {
-  const request = parse();
-  if (request === "help")
-    process.stdout.write(
-      "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nstatus --repo <owner/name> --branch <branch> --expected <commit> [--json]\nPlanned: comments\n",
-    );
-  else if (request === "version") process.stdout.write("0.0.0\n");
-  else if (request.command === "preview") {
-    cancelled(abort.signal);
-    const preview = await startPreview(request.outDir!, request.port);
-    const close = () => {
-      void preview.close();
-    };
-    abort.signal.addEventListener("abort", close, { once: true });
-    if (abort.signal.aborted) {
-      await preview.close();
-      cancelled(abort.signal);
-    }
-    const result = {
-      schemaVersion: 1,
-      command: "preview",
-      ok: true,
-      exitCode: 0,
-      effect: "none",
-      configVersion: null,
-      data: { url: preview.url, buildId: preview.buildId },
-      diagnostics: [],
-    };
-    process.stdout.write(
-      json
-        ? JSON.stringify(result) + "\n"
-        : `Preview: ${preview.url} (Ctrl+C to stop)\n`,
-    );
-  } else {
-    const result =
-      request.command === "status"
-        ? await status(request, abort.signal)
-        : request.command === "deploy"
-          ? await deploy(request, abort.signal)
-          : request.command === "build"
-            ? await executeBuild(request.config!, abort.signal)
-            : await execute(request, abort.signal);
+  if (
+    args[0] === "comments" &&
+    ["list", "approve", "reject"].includes(args[1] ?? "") &&
+    !(args.length === 3 && args[2] === "--help")
+  ) {
+    const result = await runModeration(args.slice(1), abort.signal);
     process.exitCode = result.exitCode;
     process.stdout.write(
-      json
-        ? JSON.stringify(result) + "\n"
-        : `${result.command}: ${result.ok ? "OK" : "FAILED"} (effect=${result.effect})\n${result.data ? JSON.stringify(result.data, null, 2) + "\n" : ""}${result.diagnostics.map((d) => `${d.code}: ${d.message}`).join("\n")}\n`,
+      JSON.stringify(result, null, json ? undefined : 2) + "\n",
     );
+  } else {
+    const request = parse();
+    if (request === "help")
+      process.stdout.write(
+        "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nstatus --repo <owner/name> --branch <branch> --expected <commit> [--json]\ncomments list --origin <url> [--after <id>] [--json]\ncomments approve|reject <id> --origin <url> [--json]\n",
+      );
+    else if (request === "version") process.stdout.write("0.0.0\n");
+    else if (request.command === "preview") {
+      cancelled(abort.signal);
+      const preview = await startPreview(request.outDir!, request.port);
+      const close = () => {
+        void preview.close();
+      };
+      abort.signal.addEventListener("abort", close, { once: true });
+      if (abort.signal.aborted) {
+        await preview.close();
+        cancelled(abort.signal);
+      }
+      const result = {
+        schemaVersion: 1,
+        command: "preview",
+        ok: true,
+        exitCode: 0,
+        effect: "none",
+        configVersion: null,
+        data: { url: preview.url, buildId: preview.buildId },
+        diagnostics: [],
+      };
+      process.stdout.write(
+        json
+          ? JSON.stringify(result) + "\n"
+          : `Preview: ${preview.url} (Ctrl+C to stop)\n`,
+      );
+    } else {
+      const result =
+        request.command === "status"
+          ? await status(request, abort.signal)
+          : request.command === "deploy"
+            ? await deploy(request, abort.signal)
+            : request.command === "build"
+              ? await executeBuild(request.config!, abort.signal)
+              : await execute(request, abort.signal);
+      process.exitCode = result.exitCode;
+      process.stdout.write(
+        json
+          ? JSON.stringify(result) + "\n"
+          : `${result.command}: ${result.ok ? "OK" : "FAILED"} (effect=${result.effect})\n${result.data ? JSON.stringify(result.data, null, 2) + "\n" : ""}${result.diagnostics.map((d) => `${d.code}: ${d.message}`).join("\n")}\n`,
+      );
+    }
   }
 } catch (e) {
   const err = failure(e);
