@@ -4,7 +4,7 @@ import {
   publicComment,
 } from "../../../packages/api-contract/src/comments.js";
 
-interface CommentDatabase {
+export interface CommentDatabase {
   prepare(sql: string): {
     bind(...values: (string | number | null)[]): {
       run(): Promise<unknown>;

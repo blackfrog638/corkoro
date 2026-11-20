@@ -237,4 +237,4 @@ pnpm --silent corkoro status --repo OWNER/BLOG --branch "$branch" --expected $lo
 
 ## 本地评论数据层验收
 
-在仓库根运行 `pnpm run build`，再运行 `node --test tests/runtime/comments.test.mjs`。测试在内存 SQLite 上执行 apps/api/migrations/0001_comments.sql，通过 D1 风格的语句适配器验证匿名提交、审核状态隔离、文章隔离、可选邮箱和分页。全量 `pnpm test` 包含此用例。HTTP 路由和云端 D1 的实际运行仍待验收。
+在仓库根运行 `pnpm run build`，再运行 `node --test tests/runtime/comments.test.mjs`。测试在内存 SQLite 上执行 apps/api/migrations/0001_comments.sql，通过 D1 风格的语句适配器验证匿名提交、审核状态隔离、文章隔离、可选邮箱和分页。全量 `pnpm test` 包含此用例。同一用例文件通过 Worker fetch 入口发送标准 Request，并核验状态码和 JSON。限流使用测试绑定。真实 Workers 运行时和云端 D1 仍待验收。

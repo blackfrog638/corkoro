@@ -7,7 +7,9 @@ import {
   submitComment,
 } from "../../dist/apps/api/src/comments.js";
 
-test("comment migration, submission and public keyset pages", async (t) => {
+import worker from "../../dist/apps/api/src/worker.js";
+
+function database(t) {
   const sqlite = new DatabaseSync(":memory:");
   t.after(() => sqlite.close());
   sqlite.exec(
@@ -29,6 +31,11 @@ test("comment migration, submission and public keyset pages", async (t) => {
       };
     },
   };
+  return { sqlite, db };
+}
+
+test("comment migration, submission and public keyset pages", async (t) => {
+  const { sqlite, db } = database(t);
   const input = {
     articleId: "article-1",
     displayName: " 匿名 ",
@@ -79,4 +86,51 @@ test("comment migration, submission and public keyset pages", async (t) => {
   await assert.rejects(
     listPublicComments(db, { articleId: input.articleId, limit: 0 }),
   );
+});
+
+test("Worker routes guard writes and return only moderated public fields", async (t) => {
+  const { sqlite, db } = database(t);
+  const env = {
+    COMMENT_ARTICLES: ["a"],
+    COMMENT_LIMITER: {
+      limit: async ({ key }) => ({ success: key === "192.0.2.1" }),
+    },
+    DB: db,
+  };
+  const url = "https://local.invalid/comments";
+  const post = (body, ip = "192.0.2.1") =>
+    worker.fetch(
+      new Request(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", "CF-Connecting-IP": ip },
+        body: JSON.stringify(body),
+      }),
+      env,
+    );
+  const get = (q) => worker.fetch(new Request(url + "?" + q), env);
+  const input = {
+    articleId: "a",
+    displayName: "Alice",
+    body: "Hello",
+    email: "visitor@example.org",
+  };
+  assert.equal((await post({ ...input, status: "approved" })).status, 400);
+  assert.equal((await post({ ...input, articleId: "private" })).status, 404);
+  assert.equal((await post(input, "192.0.2.2")).status, 429);
+  assert.equal((await post({ ...input, body: "a".repeat(33000) })).status, 413);
+  assert.equal((await post(input)).status, 202);
+  assert.deepEqual(await (await get("articleId=a")).json(), { comments: [] });
+  sqlite.exec("UPDATE comments SET status='approved'");
+  const { comments } = await (await get("articleId=a")).json();
+  assert.equal(comments.length, 1);
+  assert.deepEqual(Object.keys(comments[0]).sort(), [
+    "articleId",
+    "body",
+    "createdAt",
+    "displayName",
+    "id",
+  ]);
+  assert.equal((await get("articleId=a&limit=1&limit=2")).status, 400);
+  env.COMMENT_ARTICLES = [];
+  assert.equal((await get("articleId=a")).status, 404);
 });
