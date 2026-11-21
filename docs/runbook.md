@@ -270,3 +270,17 @@ pnpm --silent corkoro comments restore --file "$privateBackup" --db "$newDb" --j
 ```
 
 指定已应用两份评论迁移的本地 SQLite 源库。导出在同一读事务内捕获所有文章的评论、邮箱、审核决定与时间，以及自增 ID 水位。备份为明文 JSON，保存在受访问控制的仓库外私有目录。恢复使用固定迁移创建新库，目标路径须不存在，目录须支持硬链接。使用独占的新数据库路径，避免其他程序并发打开。数据集需能放入内存。成功返回数量和退出 0；参数错误退出 2；输入无效、文件已存在或读写失败退出 4。命令不连接云端 D1。人工往返验收使用 `node --test tests/runtime/comment-backup.test.mjs`（先构建）。
+
+## Cloudflare 评论预览环境
+
+2026-11-21 使用 Wrangler 4.165.0 在 corkoro.workers.dev 下部署了两个独立 Worker。预览绑定和目标账号见 apps/api/wrangler.public.preview.json 与 apps/api/wrangler.admin.preview.json。二者共用 corkoro-comments-preview D1。公开入口仅允许人工文章 fixture-first，限流配置为每键每 60 秒 5 次。仅在该预览环境使用人工数据。
+
+已核对两份远端迁移全部应用。公开读取、匿名管理访问返回 401、提交后待审不可见、批准后可见、拒绝后不可见和连续提交触发 429 均已实测。预览公开查询地址为 https://corkoro-comments-public-preview.corkoro.workers.dev/comments?articleId=fixture-first 。管理命令的 origin 为 https://corkoro-comments-admin-preview.corkoro.workers.dev 。
+
+更新时从仓库根目录运行以下命令。管理令牌摘要由 Wrangler secret ADMIN_TOKEN_SHA256 单独管理。公开配置和管理配置中的 DB 必须指向同一预览数据库。
+
+```powershell
+pnpm dlx wrangler@4.165.0 d1 migrations apply DB --remote --config apps/api/wrangler.public.preview.json
+pnpm dlx wrangler@4.165.0 deploy --config apps/api/wrangler.public.preview.json
+pnpm dlx wrangler@4.165.0 deploy --config apps/api/wrangler.admin.preview.json
+```

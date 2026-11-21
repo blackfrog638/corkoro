@@ -1,0 +1,16 @@
+{
+  "name": "corkoro-comments-admin-preview",
+  "main": "src/admin.ts",
+  "account_id": "1cdb38d539aba9ce999215c3fa7379aa",
+  "compatibility_date": "2026-11-20",
+  "workers_dev": true,
+  "preview_urls": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "corkoro-comments-preview",
+      "database_id": "24d825c9-6bf0-4875-8228-c2c61596f32a",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
