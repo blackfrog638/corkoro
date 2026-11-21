@@ -83,7 +83,7 @@ export function defaultPages(bundle: ContentBundle) {
       html: layout(
         doc.title,
         doc.route,
-        `<div class="reading"><a class="back-link" href="${e(local("/"))}">← 返回首页</a><article class="prose" data-content-id="${e(doc.id)}"><p class="eyebrow">${doc.kind === "article" ? "文章" : "页面"}</p>${hasTitle ? "" : `<h1>${e(doc.title)}</h1>`}${render(body)}</article></div>`,
+        `<div class="reading"><a class="back-link" href="${e(local("/"))}">← 返回首页</a><article class="prose" data-content-id="${e(doc.id)}"><p class="eyebrow">${doc.kind === "article" ? "文章" : "页面"}</p>${hasTitle ? "" : `<h1>${e(doc.title)}</h1>`}${render(body)}</article>${doc.kind==="article" && site.commentsOrigin ? `<section id="comments" data-api="${e(site.commentsOrigin)}" data-id="${e(doc.id)}"><h2>评论</h2><p aria-live="polite" data-list-status>正在加载评论…</p><ol></ol><button type="button" data-more hidden>加载更多</button><form hidden><label>显示名<input name="displayName" maxlength="80" required autocomplete="nickname"></label><label>留言<textarea name="body" maxlength="4000" required rows="4"></textarea></label><button>提交评论</button><p role="status"></p></form><noscript>请启用 JavaScript 查看评论。</noscript></section><script type="module" src="${e(local("/comment-client.js"))}"></script>` : ""}</div>`,
       ),
     });
   }

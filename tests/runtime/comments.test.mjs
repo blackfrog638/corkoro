@@ -327,3 +327,29 @@ test("moderation CLI uses an explicit origin and verifies Worker decisions", asy
   assert.equal((await run(["reject", "2", ...target])).data.status, "rejected");
   assert.deepEqual((await run(["list", ...target])).data.comments, []);
 });
+
+test("public comments CORS permits the configured site and rejects foreign writes", async () => {
+  const site = "https://blog.example.org",
+    env = { COMMENT_SITE_ORIGIN: site, COMMENT_ARTICLES: [] };
+  const req = (method, origin) =>
+    worker.fetch(
+      new Request("https://api.example.org/comments", {
+        method,
+        headers: { origin },
+      }),
+      env,
+    );
+  const preflight = await req("OPTIONS", site);
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), site);
+  assert.match(
+    preflight.headers.get("access-control-allow-headers"),
+    /content-type/i,
+  );
+  const failure = await req("GET", site);
+  assert.equal(failure.status, 400);
+  assert.equal(failure.headers.get("access-control-allow-origin"), site);
+  const denied = await req("POST", "https://other.example.org");
+  assert.equal(denied.status, 403);
+  assert.equal(denied.headers.get("access-control-allow-origin"), null);
+});

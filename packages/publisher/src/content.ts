@@ -168,6 +168,9 @@ export function createContentBundle(config: Config, analysis: Analysis) {
         ...(config.site.address
           ? { address: structuredClone(config.site.address) }
           : {}),
+        ...(config.site.commentsOrigin
+          ? { commentsOrigin: config.site.commentsOrigin }
+          : {}),
         profile: null,
         friends: structuredClone(config.site.friends),
       },

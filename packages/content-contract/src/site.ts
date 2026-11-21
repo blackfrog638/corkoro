@@ -24,4 +24,8 @@ export const siteAddressSchema = z.strictObject({
     "Expected / or slash-delimited ASCII URL segments with a trailing slash",
   ),
 });
+export const commentsOriginSchema = siteAddressSchema.shape.origin.refine(
+  (value) => value.startsWith("https://"),
+  "Expected HTTPS comments origin",
+);
 export type SiteAddress = z.infer<typeof siteAddressSchema>;

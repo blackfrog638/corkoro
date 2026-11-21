@@ -284,3 +284,9 @@ pnpm dlx wrangler@4.165.0 d1 migrations apply DB --remote --config apps/api/wran
 pnpm dlx wrangler@4.165.0 deploy --config apps/api/wrangler.public.preview.json
 pnpm dlx wrangler@4.165.0 deploy --config apps/api/wrangler.admin.preview.json
 ```
+
+### 文章页启用评论
+
+在 Vault 配置的 site 中填写 commentsOrigin，值为公开评论 Worker 的规范 HTTPS origin（无路径、无尾斜线）。Worker 的 COMMENT_SITE_ORIGIN 填博客的 origin；GitHub Pages 项目站使用 https://blackfrog638.github.io 。COMMENT_ARTICLES 决定哪些稳定文章 ID 开放评论。更新 Worker 配置后重新部署公开 Worker，重新构建并发布博客。省略 commentsOrigin 时站点不会加载评论客户端。
+
+文章页分页读取公开评论，提交后显示待审提示。Worker 对未开放文章返回 404，页面随后隐藏评论区。浏览器访问管理接口无需启用；管理令牌仅用于管理客户端。

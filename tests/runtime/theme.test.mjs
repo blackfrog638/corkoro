@@ -8,6 +8,7 @@ import { defaultPages } from "../../dist/apps/web/src/theme.js";
 
 function sample({
   article = true,
+  commentsOrigin,
   profile = null,
   friends = [],
   mode = "system",
@@ -27,6 +28,7 @@ function sample({
     manifest: {
       site: {
         title: "测试站点",
+        ...(commentsOrigin ? { commentsOrigin } : {}),
         profile,
         friends,
         address: { origin: "https://example.org", base: "/blog/" },
@@ -109,4 +111,18 @@ test("profile-only and friend-only sites render without article placeholders", (
     if (site.profile) assert.match(pages[0].html, /公开资料/);
     else assert.ok(pages.find((p) => p.slug === "friends"));
   }
+});
+
+test("comments are opt-in and mount only on article routes", () => {
+  const commentsOrigin = "https://comments.example.org";
+  const [home, article] = defaultPages(sample({ commentsOrigin }));
+  assert.match(article.html, /data-id="entry"/);
+  assert.match(article.html, /src="\/blog\/comment-client.js"/);
+  for (const page of [
+    home,
+    defaultPages(sample())[1],
+    defaultPages(sample({ commentsOrigin, article: false }))[1],
+  ])
+    assert.doesNotMatch(page.html, /comment-client.js/);
+  assert.throws(() => sample({ commentsOrigin: "http://example.org" }));
 });

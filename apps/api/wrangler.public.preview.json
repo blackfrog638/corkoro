@@ -14,6 +14,7 @@
     }
   ],
   "vars": {
+    "COMMENT_SITE_ORIGIN": "https://blackfrog638.github.io",
     "COMMENT_ARTICLES": [
       "fixture-first"
     ]

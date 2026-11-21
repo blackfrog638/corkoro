@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { visit } from "jsonc-parser";
 import path from "node:path";
-import { siteAddressSchema } from "./site.js";
+import { commentsOriginSchema, siteAddressSchema } from "./site.js";
 
 export const excluded = new Set([
   ".git",
@@ -39,9 +39,7 @@ export const sourceSchema = filePath.refine(
     !s.includes("\\") &&
     !s.includes(":") &&
     s.endsWith(".md") &&
-    s
-      .split("/")
-      .every((x) => x && x !== "." && x !== ".." && !excluded.has(x)),
+    s.split("/").every((x) => x && x !== "." && x !== ".." && !excluded.has(x)),
   "Invalid source",
 );
 export const entrySchema = z.strictObject({
@@ -93,6 +91,7 @@ export const configSchema = z
     site: z.strictObject({
       title: text,
       address: siteAddressSchema.optional(),
+      commentsOrigin: commentsOriginSchema.optional(),
       profile: profileSchema.nullable(),
       pages: z.array(pageSchema),
       friends: z.array(friendSchema),

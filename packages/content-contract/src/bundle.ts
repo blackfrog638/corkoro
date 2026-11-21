@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { siteAddressSchema } from "./site.js";
+import { commentsOriginSchema, siteAddressSchema } from "./site.js";
 import {
   configSchema,
   diagnosticSchema,
@@ -118,6 +118,7 @@ export const manifestSchema = z.strictObject({
   site: z.strictObject({
     title: text,
     address: siteAddressSchema.optional(),
+    commentsOrigin: commentsOriginSchema.optional(),
     profile: profileSchema
       .omit({ avatar: true })
       .extend({ avatar: assetIdSchema.optional() })

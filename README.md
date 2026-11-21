@@ -6,7 +6,7 @@
 
 **桌面 CLI 已通过三平台本地构建与预览验收。** 支持 Windows 本地固定 NTFS、Linux 本地 ext4 和 macOS 本地 APFS（大小写敏感和不敏感）。系统依赖、命令和适用范围见[运行手册](docs/runbook.md)。
 
-CLI 支持检查与选择内容、生成公开内容包、构建 Astro 站点与 Pagefind 索引，以及在本地预览。发布时，`deploy` 将快照提交到指定的本地博客分支，`upload:site` 推送核对过的提交，`status` 查询 GitHub Pages 部署记录。评论公开 HTTP 接口与数据层已在 Node 和本地 SQLite 验收，管理 CLI 支持列出、批准和拒绝待审评论，以及本地 SQLite 评论备份与恢复。Cloudflare 预览环境已通过真实 Worker/D1 的提交、审核与限流验收。博客前端评论接入与 Obsidian 插件待开发。
+CLI 支持检查与选择内容、生成公开内容包、构建 Astro 站点与 Pagefind 索引，以及在本地预览。发布时，`deploy` 将快照提交到指定的本地博客分支，`upload:site` 推送核对过的提交，`status` 查询 GitHub Pages 部署记录。评论公开 HTTP 接口与数据层已在 Node 和本地 SQLite 验收，管理 CLI 支持列出、批准和拒绝待审评论，以及本地 SQLite 评论备份与恢复。Cloudflare 预览环境已通过真实 Worker/D1 的提交、审核与限流验收。文章页可通过 site.commentsOrigin 启用评论列表和待审提交表单。Obsidian 插件待开发。
 
 ## 从这里开始
 

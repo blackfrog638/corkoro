@@ -239,6 +239,11 @@ export async function buildSite(
       path.join(project, "src/pages/[...slug].astro"),
       `---\nimport pages from '../pages.json';\nexport function getStaticPaths() { return pages.map(page => ({ params: { slug: page.slug }, props: { html: page.html } })); }\nconst { html } = Astro.props;\n---\n<Fragment set:html={html} />\n`,
     );
+    if (bundle.manifest.site.commentsOrigin)
+      await fs.copyFile(
+        new URL("./comment-client.js", import.meta.url),
+        path.join(project, "public", "comment-client.js"),
+      );
     for (const asset of bundle.assets)
       await fs.writeFile(
         path.join(project, "public/assets", asset.id),
