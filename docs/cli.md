@@ -39,7 +39,7 @@ corkoro content <action> [arguments] [options]
 
 ## 预留的评论管理命令
 
-`comments list --origin <url> [--after <id>]` 查询一页待审评论。`comments approve|reject <id> --origin <url>` 审核指定评论。均支持 `--json`。认证和退出码见运行手册。导出仍待开发。
+`comments list --origin <url> [--after <id>]` 查询一页待审评论。`comments approve|reject <id> --origin <url>` 审核指定评论。均支持 `--json`。认证和退出码见运行手册。本地评论数据库使用 `comments export|restore --db <SQLite路径> --file <备份路径> [--json]`。
 
 ## 参数与路径
 

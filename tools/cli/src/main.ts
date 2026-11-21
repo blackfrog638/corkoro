@@ -41,7 +41,9 @@ function parse(): Request | "help" | "version" {
         ((args[0] === "content" &&
           ["list", "add", "remove"].includes(args[1]!)) ||
           (args[0] === "comments" &&
-            ["list", "approve", "reject"].includes(args[1]!)))))
+            ["list", "approve", "reject", "export", "restore"].includes(
+              args[1]!,
+            )))))
   )
     return "help";
   let offset = 1;
@@ -142,10 +144,14 @@ function parse(): Request | "help" | "version" {
 try {
   if (
     args[0] === "comments" &&
-    ["list", "approve", "reject"].includes(args[1] ?? "") &&
+    ["list", "approve", "reject", "export", "restore"].includes(
+      args[1] ?? "",
+    ) &&
     !(args.length === 3 && args[2] === "--help")
   ) {
-    const result = await runModeration(args.slice(1), abort.signal);
+    const result = ["export", "restore"].includes(args[1]!)
+      ? await (await import("./comment-backup.js")).runBackup(args.slice(1))
+      : await runModeration(args.slice(1), abort.signal);
     process.exitCode = result.exitCode;
     process.stdout.write(
       JSON.stringify(result, null, json ? undefined : 2) + "\n",
@@ -154,7 +160,7 @@ try {
     const request = parse();
     if (request === "help")
       process.stdout.write(
-        "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nstatus --repo <owner/name> --branch <branch> --expected <commit> [--json]\ncomments list --origin <url> [--after <id>] [--json]\ncomments approve|reject <id> --origin <url> [--json]\n",
+        "Corkoro local CLI\ninspect --source <dir> --format <format> [--json]\ninit --source <dir> --config <file> --out-dir <dir> --format <format> [--json]\ncontent list --config <file> [--json]\ncontent add <source.md> --slug <slug> [--id <id>] --config <file> [--json]\ncontent remove <id> --config <file> [--json]\ncheck --config <file> [--json]\nplan --config <file> [--json]\nbuild --config <file> [--json]\npreview --out-dir <dir> [--port <port>] [--json]\ndeploy --snapshot <file> --repo <local-repo> --branch <branch> --expected <commit> --deployment-id <id> [--json]\nstatus --repo <owner/name> --branch <branch> --expected <commit> [--json]\ncomments export|restore --db <local-sqlite> --file <backup.json> [--json]\ncomments list --origin <url> [--after <id>] [--json]\ncomments approve|reject <id> --origin <url> [--json]\n",
       );
     else if (request === "version") process.stdout.write("0.0.0\n");
     else if (request.command === "preview") {

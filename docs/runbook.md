@@ -261,3 +261,12 @@ pnpm --silent corkoro comments reject 13 --origin "$env:CORKORO_ADMIN_ORIGIN" --
 ```
 
 列表最多返回 50 条，用上一页最后一条的 id 继续。管理命令 JSON 含 command、ok、exitCode 和 data 或 error。退出 0 表示查询成功或服务端确认指定决定，2 表示参数或凭据配置错误，4 表示查询失败或服务端拒绝操作，130 表示已知取消。写请求响应丢失、超时或回执不匹配时返回 5；只对同一目标和 ID 重试原决定。审核正文是访客数据。
+
+### 本地评论数据库备份与恢复
+
+```powershell
+pnpm --silent corkoro comments export --db "$sourceDb" --file "$privateBackup" --json
+pnpm --silent corkoro comments restore --file "$privateBackup" --db "$newDb" --json
+```
+
+指定已应用两份评论迁移的本地 SQLite 源库。导出在同一读事务内捕获所有文章的评论、邮箱、审核决定与时间，以及自增 ID 水位。备份为明文 JSON，保存在受访问控制的仓库外私有目录。恢复使用固定迁移创建新库，目标路径须不存在，目录须支持硬链接。使用独占的新数据库路径，避免其他程序并发打开。数据集需能放入内存。成功返回数量和退出 0；参数错误退出 2；输入无效、文件已存在或读写失败退出 4。命令不连接云端 D1。人工往返验收使用 `node --test tests/runtime/comment-backup.test.mjs`（先构建）。
